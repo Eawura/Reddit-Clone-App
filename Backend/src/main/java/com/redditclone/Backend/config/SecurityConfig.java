@@ -15,12 +15,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // Disable CSRF for testing with Thunder Client
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll() // Allow public access to auth endpoints
-                .anyRequest().authenticated()                // Secure all others
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/posts/**").permitAll()
+                .requestMatchers("/api/comments/**").permitAll()
+                
+                .anyRequest().authenticated()
             )
-            .httpBasic(withDefaults()); // Using basic HTTP auth
+            .httpBasic(withDefaults());
 
         return http.build();
     }

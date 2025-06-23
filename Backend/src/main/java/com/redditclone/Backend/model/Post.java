@@ -1,29 +1,26 @@
 package com.redditclone.Backend.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "posts")
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Entity
 public class Post {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;
-
-    @Column(columnDefinition = "TEXT")
-    private String content;
+    private String postName;
+    private String description;
+    private String url;
 
     private Instant createdDate;
 
-    private String username; // Simplified for now – we'll map this to actual User later
+    private String username; // Authenticated username
 }
