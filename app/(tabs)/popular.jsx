@@ -1,8 +1,10 @@
 import { AntDesign, Feather, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { FlatList, Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import PopupMenu from '../../components/PopupMenu';
+import ProfileModal from '../../components/ProfileModal';
+import { useTheme } from '../../components/ThemeContext';
 
 import data from './popular_data.json';
 
@@ -72,30 +74,31 @@ const Post = ({ post, onLike, onDislike }) => (
     </View>
   );
 
-const Header = ({ menuOpen, setMenuOpen }) => {
+const Header = ({ menuOpen, setMenuOpen, onProfilePress }) => {
     const router = useRouter();
+    const { themeColors } = useTheme();
     return (
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: themeColors.background }] }>
             <View style={styles.headerLeft}>
             <TouchableOpacity>
-                <Feather name="menu" size={28} color="#fff" />
+                <Feather name="menu" size={28} color={themeColors.icon} />
             </TouchableOpacity>
             <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
-                <Text style={styles.logoText}>Popular</Text>
-                <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color="#fff" />
+                <Text style={[styles.logoText, { color: '#2E45A3' } ]}>Popular</Text>
+                <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color={themeColors.icon} />
             </TouchableOpacity>
             </View>
             <View style={styles.headerIcons}>
             <TouchableOpacity style={{marginRight: 16}}>
-                <Ionicons name="search" size={24} color="#fff" />
+                <Ionicons name="search" size={24} color={themeColors.icon} />
             </TouchableOpacity>
-            <TouchableOpacity>
-                <Ionicons name="person-circle-outline" size={28} color="#fff" />
+            <TouchableOpacity onPress={onProfilePress}>
+                <Ionicons name="person-circle-outline" size={28} color={themeColors.icon} />
             </TouchableOpacity>
             </View>
         </View>
     )
-  };
+};
 
 const TrendingCard = ({ item }) => (
     <ImageBackground source={imageMap[item.image]} style={styles.trendingCard} imageStyle={{ borderRadius: 12 }}>
@@ -107,7 +110,10 @@ const TrendingCard = ({ item }) => (
 const PopularScreen = () => {
     const [posts, setPosts] = useState(data.posts.map(p => ({ ...p, liked: false, disliked: false })));
     const [menuOpen, setMenuOpen] = useState(false);
+    const [profileModalVisible, setProfileModalVisible] = useState(false);
+    const [lastTabPath, setLastTabPath] = useState(null);
     const router = useRouter();
+    const pathname = usePathname();
 
     const handleLike = (id) => {
         setPosts(posts => posts.map(post => {
@@ -132,8 +138,9 @@ const PopularScreen = () => {
     return (
         <View style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
-            <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+            <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => { setLastTabPath(pathname); setProfileModalVisible(true); }} />
             <PopupMenu visible={menuOpen} router={router} />
+            <ProfileModal visible={profileModalVisible} onClose={() => setProfileModalVisible(false)} onLogout={() => { setProfileModalVisible(false); if (lastTabPath) router.replace(lastTabPath); }} lastTabPath={lastTabPath} />
             <FlatList
                 data={posts}
                 keyExtractor={item => item.id}

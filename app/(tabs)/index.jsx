@@ -5,6 +5,8 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import PopupMenu from '../../components/PopupMenu';
+import ProfileModal from '../../components/ProfileModal';
+import { useTheme } from '../../components/ThemeContext';
 import data from './data.json';
 
 const imageMap = {
@@ -54,33 +56,40 @@ const Post = ({ post, onLike, onDislike, onComment, onShare }) => (
   </View>
 );
 
-const Header = ({ menuOpen, setMenuOpen }) => (
-  <View style={styles.header}>
-    <View style={styles.headerLeft}>
-      <TouchableOpacity>
-        <Feather name="menu" size={28} color="#fff" />
-      </TouchableOpacity>
-      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
-        <Text style={styles.logoText}>Neoping </Text>
-        <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color="#fff" />
-      </TouchableOpacity>
+const Header = ({ menuOpen, setMenuOpen, onProfilePress }) => {
+  const router = useRouter();
+  const { themeColors } = useTheme();
+  return (
+    <View style={[styles.header, { backgroundColor: themeColors.background }] }>
+      <View style={styles.headerLeft}>
+        <TouchableOpacity onPress={() => setMenuOpen(open => !open)}>
+          <Feather name="menu" size={28} color={themeColors.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
+          <Text style={[styles.logoText, { color: '#2E45A3' } ]}>Neoping </Text>
+          <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color={themeColors.icon} />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.headerIcons}>
+        <TouchableOpacity style={{marginRight: 16}}>
+          <Ionicons name="search" size={24} color={themeColors.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onProfilePress}>
+          <Ionicons name="person-circle-outline" size={28} color={themeColors.icon} />
+        </TouchableOpacity>
+      </View>
     </View>
-    <View style={styles.headerIcons}>
-      <TouchableOpacity style={{marginRight: 16}}>
-        <Ionicons name="search" size={24} color="#fff" />
-      </TouchableOpacity>
-      <TouchableOpacity>
-        <Ionicons name="person-circle-outline" size={28} color="#fff" />
-      </TouchableOpacity>
-    </View>
-  </View>
-);
+  );
+};
 
 const index = () => {
   const [posts, setPosts] = useState(data.posts.map(p => ({ ...p, liked: false, disliked: false })));
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [url, setUrl] = useState('');
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -120,6 +129,12 @@ const index = () => {
     alert('Share post ' + id);
   };
 
+  const handleShowUrlInput = () => setShowUrlInput(true);
+  const handleRemoveUrlInput = () => {
+    setShowUrlInput(false);
+    setUrl('');
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => {
@@ -139,8 +154,9 @@ const index = () => {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+      <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => setProfileModalVisible(true)} />
       <PopupMenu visible={menuOpen} router={router} />
+      <ProfileModal visible={profileModalVisible} onClose={() => setProfileModalVisible(false)} onLogout={() => { setProfileModalVisible(false); router.replace('/'); }} />
       {pathname === '/watch' ? (
         <View style={{ flex: 1, backgroundColor: '#fff', justifyContent: 'flex-start', alignItems: 'flex-start', paddingTop: 40, paddingHorizontal: 16 }}>
           <Text style={{ fontWeight: 'bold', fontSize: 20, marginBottom: 8, marginLeft: 6 }}>There is no content to display</Text>

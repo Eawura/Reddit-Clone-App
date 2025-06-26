@@ -1,4 +1,5 @@
 import { Entypo, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -10,6 +11,11 @@ const Create = () => {
   const [body, setBody] = useState('');
   const [selectedCommunity, setSelectedCommunity] = useState(params.community || '');
   const [canPost, setCanPost] = useState(false);
+  const [showPoll, setShowPoll] = useState(false);
+  const [pollOptions, setPollOptions] = useState(['', '']);
+  const [pollDuration, setPollDuration] = useState(3); // days
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [url, setUrl] = useState('');
 
   useEffect(() => {
     setCanPost(title.trim().length > 0 && selectedCommunity);
@@ -36,11 +42,30 @@ const Create = () => {
   };
 
   const handleAttachment = () => {
-    Alert.alert('Coming Soon', 'File attachment feature coming soon!');
+    setShowUrlInput(true);
   };
 
-  const handleAddPhoto = () => {
-    Alert.alert('Coming Soon', 'Photo attachment feature coming soon!');
+  const handleAddPhoto = async () => {
+    // Ask for camera permissions
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Camera permission is required to take a photo.');
+      return;
+    }
+
+    // Launch the camera
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const photoUri = result.assets[0].uri;
+      Alert.alert('Photo Taken', `Photo URI: ${photoUri}`);
+      // You can now use the photoUri as needed (e.g., upload or display)
+    }
   };
 
   const handleAddVideo = () => {
@@ -48,7 +73,28 @@ const Create = () => {
   };
 
   const handleAddList = () => {
-    Alert.alert('Coming Soon', 'List creation feature coming soon!');
+    setShowPoll(true);
+  };
+
+  const handlePollOptionChange = (text, idx) => {
+    const newOptions = [...pollOptions];
+    newOptions[idx] = text;
+    setPollOptions(newOptions);
+  };
+
+  const handleAddPollOption = () => {
+    setPollOptions([...pollOptions, '']);
+  };
+
+  const handleRemovePoll = () => {
+    setShowPoll(false);
+    setPollOptions(['', '']);
+    setPollDuration(3);
+  };
+
+  const handleRemoveUrlInput = () => {
+    setShowUrlInput(false);
+    setUrl('');
   };
 
   return (
@@ -120,6 +166,51 @@ const Create = () => {
           <FontAwesome5 name="list-ol" size={24} color="#222" />
         </TouchableOpacity>
       </View>
+
+      {showPoll && (
+        <View style={{borderWidth:1, borderColor:'#222', borderRadius:16, padding:12, margin:16}}>
+          <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+            <Text>Poll ends in <Text style={{fontWeight:'bold'}}> {pollDuration} days </Text></Text>
+            <TouchableOpacity onPress={handleRemovePoll}>
+              <Text style={{fontSize:22}}>×</Text>
+            </TouchableOpacity>
+          </View>
+          {pollOptions.map((opt, idx) => (
+            <View key={idx} style={{flexDirection:'row', alignItems:'center', marginBottom:6}}>
+              <Text style={{fontSize:18, marginRight:6}}>⋮</Text>
+              <TextInput
+                style={{flex:1, backgroundColor:'#e5e5e5', borderRadius:6, padding:8, marginBottom:2}}
+                placeholder={`Option ${idx+1}`}
+                value={opt}
+                onChangeText={text => handlePollOptionChange(text, idx)}
+              />
+            </View>
+          ))}
+          <TouchableOpacity onPress={handleAddPollOption} style={{backgroundColor:'#e5e5e5', borderRadius:6, padding:8, alignItems:'center'}}>
+            <Text style={{color:'#666'}}>+Add option</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {showUrlInput && (
+        <View style={{flexDirection:'row', alignItems:'center', marginHorizontal:16, marginTop:8, marginBottom:8}}>
+          <View style={{flex:1}}>
+            <Text style={{color:'#666', fontWeight:'bold', fontSize:18, marginBottom:2}}>URL</Text>
+            <TextInput
+              style={{fontSize:16, color:'#222', borderBottomWidth:1, borderColor:'#ccc', paddingVertical:4}}
+              placeholder="Paste or type a link"
+              value={url}
+              onChangeText={setUrl}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+            />
+          </View>
+          <TouchableOpacity onPress={handleRemoveUrlInput} style={{marginLeft:8}}>
+            <Text style={{fontSize:22}}>×</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };

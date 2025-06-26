@@ -1,5 +1,10 @@
 import { Slot } from 'expo-router';
+import { ThemeProvider } from '../components/ThemeContext';
 
 export default function RootLayout() {
-  return <Slot />;
+  return (
+    <ThemeProvider>
+      <Slot />
+    </ThemeProvider>
+  );
 } 

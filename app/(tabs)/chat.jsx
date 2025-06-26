@@ -1,6 +1,9 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import { usePathname, useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ProfileModal from '../../components/ProfileModal';
+import { useTheme } from '../../components/ThemeContext';
 
 // This object maps avatar file names to their actual image files in the assets folder
 // Makes it easy to reference images by name in our mock data
@@ -18,7 +21,7 @@ const imageMap = {
 
 // Here's some mock chat data to simulate real conversations
 // Each object represents a chat with a user
-const mockChats = [
+const initialChats = [
   {
     id: '1', // Unique identifier for the chat
     name: 'Tommie Francis', // Name of the contact
@@ -95,64 +98,84 @@ const mockChats = [
 
 // This component renders the top header bar of the chat screen
 // Includes a menu button, the title, and some action icons
-const ChatHeader = () => (
-  <View style={styles.header}>
-    {/* Menu icon on the left */}
-    <TouchableOpacity>
-      <Feather name="menu" size={28} color="#ccc" />
-    </TouchableOpacity>
-    {/* Centered title */}
-    <Text style={styles.headerTitle}>Chat</Text>
-    {/* Icons on the right: search and profile */}
-    <View style={styles.headerIcons}>
-      <TouchableOpacity style={{ marginRight: 16 }}>
-        <Ionicons name="search" size={24} color="#ccc" />
+const ChatHeader = ({ menuOpen, setMenuOpen, onProfilePress }) => {
+  const router = useRouter();
+  const { themeColors } = useTheme();
+  return (
+    <View style={[styles.header, { backgroundColor: themeColors.background }] }>
+      <TouchableOpacity onPress={() => setMenuOpen(open => !open)}>
+        <Feather name="menu" size={28} color={themeColors.icon} />
       </TouchableOpacity>
-      <TouchableOpacity>
-        <Ionicons name="person-circle-outline" size={28} color="#ccc" />
-      </TouchableOpacity>
+      <Text style={[styles.headerTitle, { color: '#2E45A3' }]}>Chat</Text>
+      <View style={styles.headerIcons}>
+        <TouchableOpacity style={{ marginRight: 16 }}>
+          <Ionicons name="search" size={24} color={themeColors.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onProfilePress}>
+          <Ionicons name="person-circle-outline" size={28} color={themeColors.icon} />
+        </TouchableOpacity>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 // This component represents a single row in the chat list
 // It shows the avatar, name, last message, time, and unread badge if needed
-const ChatRow = ({ chat }) => (
-  <View style={styles.row}>
-    {/* User avatar */}
-    <Image source={imageMap[chat.avatar]} style={styles.avatar} />
-    {/* Name and last message */}
-    <View style={styles.textContainer}>
-      <Text style={styles.name}>{chat.name}</Text>
-      {/* Only show one line of the last message, truncate if too long */}
-      <Text style={styles.lastMessage} numberOfLines={1}>{chat.lastMessage}</Text>
+const ChatRow = ({ chat, onPress }) => (
+  <TouchableOpacity onPress={() => onPress(chat)}>
+    <View style={styles.row}>
+      {/* User avatar */}
+      <Image source={imageMap[chat.avatar]} style={styles.avatar} />
+      {/* Name and last message */}
+      <View style={styles.textContainer}>
+        <Text style={styles.name}>{chat.name}</Text>
+        {/* Only show one line of the last message, truncate if too long */}
+        <Text style={styles.lastMessage} numberOfLines={1}>{chat.lastMessage}</Text>
+      </View>
+      {/* Time and unread badge on the right */}
+      <View style={styles.rightContainer}>
+        <Text style={[styles.time, { color: chat.unread === 0 ? '#cccccc' : '#2946d7' }]}>{chat.time}</Text>
+        {/* Only show unread badge if there are unread messages */}
+        {chat.unread > 0 && (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadText}>{chat.unread}</Text>
+          </View>
+        )}
+      </View>
     </View>
-    {/* Time and unread badge on the right */}
-    <View style={styles.rightContainer}>
-      <Text style={styles.time}>{chat.time}</Text>
-      {/* Only show unread badge if there are unread messages */}
-      {chat.unread > 0 && (
-        <View style={styles.unreadBadge}>
-          <Text style={styles.unreadText}>{chat.unread}</Text>
-        </View>
-      )}
-    </View>
-  </View>
+  </TouchableOpacity>
 );
 
 // The main Chat component brings everything together
 // It renders the header and the list of chats
 const Chat = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [chats, setChats] = useState(initialChats);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [lastTabPath, setLastTabPath] = useState(null);
+
+  const handleChatPress = (chat) => {
+    // Mark as read
+    setChats((prevChats) =>
+      prevChats.map((c) =>
+        c.id === chat.id ? { ...c, unread: 0 } : c
+      )
+    );
+    router.push({ pathname: '/(tabs)/chatDetail', params: { chat: JSON.stringify(chat) } });
+  };
+
   return (
     <View style={styles.container}>
-      {/* Top header bar */}
-      <ChatHeader />
+      <ChatHeader menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => { setLastTabPath(pathname); setProfileModalVisible(true); }} />
+      <ProfileModal visible={profileModalVisible} onClose={() => setProfileModalVisible(false)} onLogout={() => { setProfileModalVisible(false); if (lastTabPath) router.replace(lastTabPath); }} lastTabPath={lastTabPath} />
       {/* List of chats using FlatList for performance */}
       <FlatList
-        data={mockChats} // Our chat data
-        keyExtractor={item => item.id} // Unique key for each item
-        renderItem={({ item }) => <ChatRow chat={item} />} // How to render each row
-        ItemSeparatorComponent={() => <View style={styles.separator} />} // Separator between rows
+        data={chats}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => <ChatRow chat={item} onPress={() => handleChatPress(item)} />}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </View>
   );

@@ -4,18 +4,26 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
+import { useTheme } from '../../components/ThemeContext';
 
 export default function TabsLayout() {
+  const { themeColors } = useTheme();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#2E45A3',
+        tabBarActiveTintColor: themeColors.accent || '#2E45A3',
+        tabBarInactiveTintColor: themeColors.textSecondary,
+        tabBarShowLabel: true,
+        tabBarLabelStyle: {
+          fontSize: 12,
+          marginTop: 2,
+        },
         tabBarStyle: {
-          backgroundColor: '#000',
-          borderColor: '#000',
+          backgroundColor: themeColors.background,
+          borderColor: themeColors.border,
         },
         headerStyle: {
-          backgroundColor: '#000',
+          backgroundColor: themeColors.background,
           height: 150,
         },
       }}
@@ -64,7 +72,7 @@ export default function TabsLayout() {
         name="inbox"
         options={{
           title: 'Inbox',
-          headerShown: true,
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons name="bell-outline" size={24} color={color} />
           ),
@@ -90,6 +98,12 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="latest"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="chatDetail"
         options={{
           href: null,
         }}

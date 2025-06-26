@@ -1,28 +1,31 @@
 import { AntDesign, Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import PopupMenu from '../../components/PopupMenu';
+import ProfileModal from '../../components/ProfileModal';
+import { useTheme } from '../../components/ThemeContext';
 
-const Header = ({ menuOpen, setMenuOpen }) => {
+const Header = ({ menuOpen, setMenuOpen, onProfilePress }) => {
     const router = useRouter();
+    const { themeColors } = useTheme();
     return (
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: themeColors.background }] }>
             <View style={styles.headerLeft}>
             <TouchableOpacity>
-                <Feather name="menu" size={28} color="#fff" />
+                <Feather name="menu" size={28} color={themeColors.icon} />
             </TouchableOpacity>
             <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
-                <Text style={styles.logoText}>Latest</Text>
-                <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color="#fff" />
+                <Text style={[styles.logoText, { color: '#2E45A3' } ]}>Latest</Text>
+                <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color={themeColors.icon} />
             </TouchableOpacity>
             </View>
             <View style={styles.headerIcons}>
             <TouchableOpacity style={{marginRight: 16}}>
-                <Ionicons name="search" size={24} color="#fff" />
+                <Ionicons name="search" size={24} color={themeColors.icon} />
             </TouchableOpacity>
-            <TouchableOpacity>
-                <Ionicons name="person-circle-outline" size={28} color="#fff" />
+            <TouchableOpacity onPress={onProfilePress}>
+                <Ionicons name="person-circle-outline" size={28} color={themeColors.icon} />
             </TouchableOpacity>
             </View>
         </View>
@@ -98,6 +101,9 @@ const Latest = () => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [selectedSort, setSelectedSort] = useState('New');
     const router = useRouter();
+    const pathname = usePathname();
+    const [profileModalVisible, setProfileModalVisible] = useState(false);
+    const [lastTabPath, setLastTabPath] = useState(null);
 
     const sortOptions = ['New', 'Hot', 'Top', 'Rising'];
 
@@ -243,8 +249,9 @@ const Latest = () => {
     return (
         <View style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
-            <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+            <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => { setLastTabPath(pathname); setProfileModalVisible(true); }} />
             <PopupMenu visible={menuOpen} router={router} />
+            <ProfileModal visible={profileModalVisible} onClose={() => setProfileModalVisible(false)} onLogout={() => { setProfileModalVisible(false); if (lastTabPath) router.replace(lastTabPath); }} lastTabPath={lastTabPath} />
             
             <View style={styles.sortContainer}>
                 <FlatList
@@ -286,7 +293,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#DAE0E6',
     },
     header: {
-        backgroundColor: '#000',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -299,7 +305,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     logoText: {
-        color: '#2E45A3',
         fontSize: 22,
         fontWeight: 'bold',
         marginLeft: 10,

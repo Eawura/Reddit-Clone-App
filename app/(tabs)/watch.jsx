@@ -1,43 +1,50 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import PopupMenu from '../../components/PopupMenu';
+import ProfileModal from '../../components/ProfileModal';
+import { useTheme } from '../../components/ThemeContext';
 
-const Header = ({ menuOpen, setMenuOpen }) => {
+const Header = ({ menuOpen, setMenuOpen, onProfilePress }) => {
     const router = useRouter();
+    const { themeColors } = useTheme();
     return (
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: themeColors.background }] }>
             <View style={styles.headerLeft}>
             <TouchableOpacity>
-                <Feather name="menu" size={28} color="#fff" />
+                <Feather name="menu" size={28} color={themeColors.icon} />
             </TouchableOpacity>
             <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
-                <Text style={styles.logoText}>Watch</Text>
-                <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color="#fff" />
+                <Text style={[styles.logoText, { color: '#2E45A3' } ]}>Watch</Text>
+                <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color={themeColors.icon} />
             </TouchableOpacity>
             </View>
             <View style={styles.headerIcons}>
             <TouchableOpacity style={{marginRight: 16}}>
-                <Ionicons name="search" size={24} color="#fff" />
+                <Ionicons name="search" size={24} color={themeColors.icon} />
             </TouchableOpacity>
-            <TouchableOpacity>
-                <Ionicons name="person-circle-outline" size={28} color="#fff" />
+            <TouchableOpacity onPress={onProfilePress}>
+                <Ionicons name="person-circle-outline" size={28} color={themeColors.icon} />
             </TouchableOpacity>
             </View>
         </View>
     )
-  };
+};
 
 const Watch = () => {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [profileModalVisible, setProfileModalVisible] = useState(false);
+    const [lastTabPath, setLastTabPath] = useState(null);
     const router = useRouter();
+    const pathname = usePathname();
 
     return (
         <View style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
-            <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+            <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => { setLastTabPath(pathname); setProfileModalVisible(true); }} />
             <PopupMenu visible={menuOpen} router={router} />
+            <ProfileModal visible={profileModalVisible} onClose={() => setProfileModalVisible(false)} onLogout={() => { setProfileModalVisible(false); if (lastTabPath) router.replace(lastTabPath); }} lastTabPath={lastTabPath} />
             <View style={styles.content}>
                 <Text style={styles.title}>There is no content to display</Text>
                 <Text style={styles.subtitle}>We were unable to find any content for this page</Text>
