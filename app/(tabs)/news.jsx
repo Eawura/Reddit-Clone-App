@@ -1,32 +1,30 @@
 import { AntDesign, Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import CommentModal from '../../components/CommentModal';
 import PopupMenu from '../../components/PopupMenu';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
 
-const Header = ({ menuOpen, setMenuOpen, onProfilePress }) => {
+const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
     const router = useRouter();
     const { themeColors } = useTheme();
     return (
         <View style={[styles.header, { backgroundColor: themeColors.background }] }>
             <View style={styles.headerLeft}>
-            <TouchableOpacity>
-                <Feather name="menu" size={28} color={themeColors.icon} />
-            </TouchableOpacity>
-            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
-                <Text style={[styles.logoText, { color: '#2E45A3' } ]}>News</Text>
-                <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color={themeColors.icon} />
-            </TouchableOpacity>
+                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
+                    <Text style={[styles.logoText, { color: '#2E45A3' } ]}>News</Text>
+                    <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color={themeColors.icon} />
+                </TouchableOpacity>
             </View>
             <View style={styles.headerIcons}>
-            <TouchableOpacity style={{marginRight: 16}}>
-                <Ionicons name="search" size={24} color={themeColors.icon} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onProfilePress}>
-                <Ionicons name="person-circle-outline" size={28} color={themeColors.icon} />
-            </TouchableOpacity>
+                <TouchableOpacity style={{marginRight: 16}} onPress={onSearchPress}>
+                    <Ionicons name="search" size={24} color={themeColors.icon} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={onProfilePress}>
+                    <Ionicons name="person-circle-outline" size={28} color={themeColors.icon} />
+                </TouchableOpacity>
             </View>
         </View>
     )
@@ -41,55 +39,53 @@ const CategoryButton = ({ title, active, onPress }) => (
     </TouchableOpacity>
 );
 
-const NewsCard = ({ news, onUpvote, onDownvote }) => (
-    <View style={styles.newsCard}>
+const NewsCard = ({ news, onUpvote, onDownvote, onComment, themeColors }) => (
+    <View style={[styles.newsCard, { backgroundColor: themeColors.card }]}>
         <View style={styles.newsHeader}>
-            <View style={styles.newsMeta}>
-                <Text style={styles.newsSource}>{news.source}</Text>
-                <Text style={styles.newsTime}>• {news.time}</Text>
-                <Text style={styles.newsCategory}>• {news.category}</Text>
+            <View style={styles.newsSource}>
+                <Text style={[styles.sourceText, { color: themeColors.textSecondary }]}>{news.source}</Text>
+                <Text style={[styles.timeText, { color: themeColors.textSecondary }]}>• {news.time}</Text>
             </View>
             <TouchableOpacity>
-                <Feather name="more-horizontal" size={20} color="#888" />
+                <Feather name="more-horizontal" size={20} color={themeColors.icon} />
             </TouchableOpacity>
         </View>
         
-        <Text style={styles.newsTitle}>{news.title}</Text>
+        <Text style={[styles.newsTitle, { color: themeColors.text }]}>{news.title}</Text>
+        <Text style={[styles.newsExcerpt, { color: themeColors.textSecondary }]}>{news.excerpt}</Text>
+        
         {news.image && (
             <Image source={{ uri: news.image }} style={styles.newsImage} />
         )}
-        <Text style={styles.newsExcerpt}>{news.excerpt}</Text>
         
         <View style={styles.newsActions}>
             <View style={styles.actionGroup}>
                 <TouchableOpacity style={styles.actionBtn} onPress={() => onUpvote(news.id)}>
                     <AntDesign 
-                        name={news.upvoted ? 'heart' : 'hearto'} 
+                        name={news.upvoted ? 'arrowup' : 'arrowup'} 
                         size={20} 
-                        color={news.upvoted ? '#FF4500' : '#888'} 
+                        color={news.upvoted ? '#FF4500' : themeColors.icon} 
                     />
-                    <Text style={[styles.actionText, news.upvoted && { color: '#FF4500' }]}>
-                        {news.upvotes}
-                    </Text>
+                    <Text style={[styles.actionText, { color: news.upvoted ? '#FF4500' : themeColors.textSecondary }]}>{news.upvotes}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.actionBtn} onPress={() => onDownvote(news.id)}>
                     <MaterialIcons 
                         name="heart-broken" 
                         size={24} 
-                        color={news.downvoted ? '#7193FF' : '#888'} 
+                        color={news.downvoted ? '#7193FF' : themeColors.icon} 
                     />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtn}>
-                    <Feather name="message-circle" size={20} color="#888" />
-                    <Text style={styles.actionText}>{news.comments}</Text>
+                <TouchableOpacity style={styles.actionBtn} onPress={() => onComment(news.id)}>
+                    <Feather name="message-circle" size={20} color={themeColors.icon} />
+                    <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{news.comments}</Text>
                 </TouchableOpacity>
             </View>
             <View style={styles.actionGroup}>
                 <TouchableOpacity style={styles.actionBtn}>
-                    <Feather name="share-2" size={20} color="#888" />
+                    <Feather name="share-2" size={20} color={themeColors.icon} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.actionBtn}>
-                    <Feather name="bookmark" size={20} color="#888" />
+                    <Feather name="bookmark" size={20} color={themeColors.icon} />
                 </TouchableOpacity>
             </View>
         </View>
@@ -103,6 +99,37 @@ const News = () => {
     const pathname = usePathname();
     const [profileModalVisible, setProfileModalVisible] = useState(false);
     const [lastTabPath, setLastTabPath] = useState(null);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [searchText, setSearchText] = useState('');
+    const [commentModalVisible, setCommentModalVisible] = useState(false);
+    const [selectedNews, setSelectedNews] = useState(null);
+    const [comments, setComments] = useState([
+      {
+        id: 1,
+        username: 'u/NewsReader1',
+        text: 'This is a significant development. Thanks for sharing!',
+        time: '1h ago',
+        likes: 18,
+        liked: false
+      },
+      {
+        id: 2,
+        username: 'u/InformedUser',
+        text: 'I\'ve been following this story. Great coverage.',
+        time: '45m ago',
+        likes: 12,
+        liked: false
+      },
+      {
+        id: 3,
+        username: 'u/CurrentEvents',
+        text: 'This will have major implications for the industry.',
+        time: '30m ago',
+        likes: 9,
+        liked: false
+      }
+    ]);
+    const { themeColors } = useTheme();
 
     const categories = ['All', 'Technology', 'Politics', 'Sports', 'Entertainment', 'Science', 'Business'];
 
@@ -206,16 +233,101 @@ const News = () => {
         }));
     };
 
-    const filteredNews = selectedCategory === 'All' 
-        ? news 
-        : news.filter(item => item.category === selectedCategory);
+    const handleComment = (id) => {
+      const newsItem = news.find(n => n.id === id);
+      setSelectedNews(newsItem);
+      setCommentModalVisible(true);
+    };
+
+    const handleAddComment = (text, replyingTo = null) => {
+      const newComment = {
+        id: Date.now(),
+        username: 'u/CurrentUser',
+        text: text,
+        time: 'Just now',
+        likes: 0,
+        liked: false,
+        replyingTo: replyingTo
+      };
+      setComments(prev => [newComment, ...prev]);
+      
+      // Update news comment count
+      setNews(news => news.map(item => {
+        if (item.id === selectedNews.id) {
+          return { ...item, comments: item.comments + 1 };
+        }
+        return item;
+      }));
+    };
+
+    const handleLikeComment = (commentId) => {
+      setComments(comments => comments.map(comment => {
+        if (comment.id === commentId) {
+          if (comment.liked) {
+            return { ...comment, liked: false, likes: comment.likes - 1 };
+          } else {
+            return { ...comment, liked: true, likes: comment.likes + 1 };
+          }
+        }
+        return comment;
+      }));
+    };
+
+    const filteredNews = searchText.trim() === '' ? news : news.filter(item => {
+        const q = searchText.toLowerCase();
+        return (
+            item.title.toLowerCase().includes(q) ||
+            item.source.toLowerCase().includes(q) ||
+            (item.excerpt && item.excerpt.toLowerCase().includes(q))
+        );
+    });
+
+    const handleSearchIcon = () => setSearchOpen(true);
+    const handleCancelSearch = () => { setSearchOpen(false); setSearchText(''); };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: themeColors.background }] }>
             <Stack.Screen options={{ headerShown: false }} />
-            <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => { setLastTabPath(pathname); setProfileModalVisible(true); }} />
+            {searchOpen ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 40, backgroundColor: themeColors.background, borderBottomWidth: 1, borderColor: themeColors.border }}>
+                    <Ionicons name="search" size={22} color={themeColors.icon} style={{ marginRight: 8 }} />
+                    <TextInput
+                        style={{ flex: 1, fontSize: 18, color: themeColors.text, paddingVertical: 8 }}
+                        placeholder="Search news"
+                        placeholderTextColor={themeColors.textSecondary}
+                        value={searchText}
+                        onChangeText={setSearchText}
+                        autoFocus
+                    />
+                    {searchText.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchText('')} style={{ marginHorizontal: 4 }}>
+                            <Ionicons name="close-circle" size={22} color={themeColors.icon} />
+                        </TouchableOpacity>
+                    )}
+                    <TouchableOpacity onPress={handleCancelSearch} style={{ marginLeft: 8 }}>
+                        <Text style={{ color: themeColors.accent || '#2E45A3', fontSize: 16 }}>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
+            ) : null}
+            {!searchOpen && (
+                <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => { setLastTabPath(pathname); setProfileModalVisible(true); }} onSearchPress={handleSearchIcon} />
+            )}
             <PopupMenu visible={menuOpen} router={router} />
             <ProfileModal visible={profileModalVisible} onClose={() => setProfileModalVisible(false)} onLogout={() => { setProfileModalVisible(false); if (lastTabPath) router.replace(lastTabPath); }} lastTabPath={lastTabPath} />
+            
+            {/* Comment Modal */}
+            {selectedNews && (
+              <CommentModal
+                visible={commentModalVisible}
+                onClose={() => setCommentModalVisible(false)}
+                post={selectedNews}
+                comments={comments}
+                onAddComment={handleAddComment}
+                onLikeComment={handleLikeComment}
+                onReplyComment={() => {}}
+                themeColors={themeColors}
+              />
+            )}
             
             <View style={styles.categoriesContainer}>
                 <FlatList
@@ -241,10 +353,12 @@ const News = () => {
                     <NewsCard 
                         news={item} 
                         onUpvote={handleUpvote} 
-                        onDownvote={handleDownvote} 
+                        onDownvote={handleDownvote}
+                        onComment={handleComment}
+                        themeColors={themeColors}
                     />
                 )}
-                ItemSeparatorComponent={() => <View style={{height: 8}} />}
+                ItemSeparatorComponent={() => <View style={{height: 12}} />}
                 contentContainerStyle={styles.newsList}
             />
         </View>
@@ -254,7 +368,6 @@ const News = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#DAE0E6',
     },
     header: {
         flexDirection: 'row',
@@ -319,22 +432,17 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         marginBottom: 8,
     },
-    newsMeta: {
+    newsSource: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
     },
-    newsSource: {
+    sourceText: {
         fontWeight: 'bold',
         fontSize: 14,
         color: '#1a1a1a',
     },
-    newsTime: {
-        fontSize: 12,
-        color: '#657786',
-        marginLeft: 4,
-    },
-    newsCategory: {
+    timeText: {
         fontSize: 12,
         color: '#657786',
         marginLeft: 4,

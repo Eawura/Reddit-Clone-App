@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../../components/ThemeContext';
 
 const Create = () => {
   const router = useRouter();
@@ -16,6 +17,7 @@ const Create = () => {
   const [pollDuration, setPollDuration] = useState(3); // days
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [url, setUrl] = useState('');
+  const { themeColors } = useTheme();
 
   useEffect(() => {
     setCanPost(title.trim().length > 0 && selectedCommunity);
@@ -98,7 +100,7 @@ const Create = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }] }>
       {/* Top Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity 
@@ -130,9 +132,9 @@ const Create = () => {
       </TouchableOpacity>
 
       {/* Title Input */}
-      <Text style={styles.titleLabel}>Title</Text>
+      <Text style={[styles.titleLabel, { color: themeColors.text } ]}>Title</Text>
       <TextInput
-        style={styles.titleInput}
+        style={[styles.titleInput, { color: themeColors.text } ]}
         placeholder=""
         placeholderTextColor="#888"
         value={title}
@@ -142,7 +144,7 @@ const Create = () => {
 
       {/* Body Input */}
       <TextInput
-        style={styles.bodyInput}
+        style={[styles.bodyInput, { color: themeColors.text } ]}
         placeholder="body text (optional)"
         placeholderTextColor="#222"
         multiline
@@ -218,7 +220,6 @@ const Create = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
     paddingTop: 32,
   },
   topBar: {

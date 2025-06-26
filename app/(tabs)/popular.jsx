@@ -1,7 +1,8 @@
 import { AntDesign, Feather, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import CommentModal from '../../components/CommentModal';
 import PopupMenu from '../../components/PopupMenu';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
@@ -35,18 +36,18 @@ const formatLikes = (num) => {
     return num;
   };
 
-const Post = ({ post, onLike, onDislike }) => (
-    <View style={styles.postContainer}>
+const Post = ({ post, onLike, onDislike, onComment, themeColors }) => (
+    <View style={[styles.postContainer, { backgroundColor: themeColors.card }]}>
       <View style={styles.postHeader}>
         <Image source={imageMap[post.avatar]} style={styles.avatar} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.postUser}>{post.user} <Text style={styles.postTime}>• {post.time}</Text></Text>
+          <Text style={[styles.postUser, { color: themeColors.text }]}>{post.user} <Text style={styles.postTime}>• {post.time}</Text></Text>
         </View>
         <TouchableOpacity>
-          <Feather name="more-horizontal" size={20} color="#888" />
+          <Feather name="more-horizontal" size={20} color={themeColors.icon} />
         </TouchableOpacity>
       </View>
-      <Text style={styles.postTitle}>{post.title}</Text>
+      <Text style={[styles.postTitle, { color: themeColors.text }]}>{post.title}</Text>
       {post.image && <Image source={imageMap[post.image]} style={styles.postImage} />}
       <View style={styles.postActions}>
         <View style={styles.actionGroup}>
@@ -57,7 +58,7 @@ const Post = ({ post, onLike, onDislike }) => (
           <TouchableOpacity style={styles.actionBtn} onPress={() => onDislike(post.id)}>
             <MaterialIcons name="heart-broken" size={24} color={post.disliked ? '#e74c3c' : '#ccc'} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn}>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => onComment(post.id)}>
             <Feather name="message-circle" size={20} color="#ccc" />
             <Text style={styles.actionText}>{post.comments}</Text>
           </TouchableOpacity>
@@ -74,27 +75,28 @@ const Post = ({ post, onLike, onDislike }) => (
     </View>
   );
 
-const Header = ({ menuOpen, setMenuOpen, onProfilePress }) => {
+const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
     const router = useRouter();
     const { themeColors } = useTheme();
     return (
         <View style={[styles.header, { backgroundColor: themeColors.background }] }>
             <View style={styles.headerLeft}>
-            <TouchableOpacity>
-                <Feather name="menu" size={28} color={themeColors.icon} />
-            </TouchableOpacity>
-            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
-                <Text style={[styles.logoText, { color: '#2E45A3' } ]}>Popular</Text>
-                <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color={themeColors.icon} />
-            </TouchableOpacity>
+                {/* Remove menu icon */}
+                {/* <TouchableOpacity>
+                    <Feather name="menu" size={28} color={themeColors.icon} />
+                </TouchableOpacity> */}
+                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
+                    <Text style={[styles.logoText, { color: '#2E45A3' } ]}>Popular</Text>
+                    <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color={themeColors.icon} />
+                </TouchableOpacity>
             </View>
             <View style={styles.headerIcons}>
-            <TouchableOpacity style={{marginRight: 16}}>
-                <Ionicons name="search" size={24} color={themeColors.icon} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onProfilePress}>
-                <Ionicons name="person-circle-outline" size={28} color={themeColors.icon} />
-            </TouchableOpacity>
+                <TouchableOpacity style={{marginRight: 16}} onPress={onSearchPress}>
+                    <Ionicons name="search" size={24} color={themeColors.icon} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={onProfilePress}>
+                    <Ionicons name="person-circle-outline" size={28} color={themeColors.icon} />
+                </TouchableOpacity>
             </View>
         </View>
     )
@@ -112,8 +114,52 @@ const PopularScreen = () => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [profileModalVisible, setProfileModalVisible] = useState(false);
     const [lastTabPath, setLastTabPath] = useState(null);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [searchText, setSearchText] = useState('');
+    const [commentModalVisible, setCommentModalVisible] = useState(false);
+    const [selectedPost, setSelectedPost] = useState(null);
+    const [comments, setComments] = useState([
+      {
+        id: 1,
+        username: 'u/PopularUser1',
+        text: 'This is trending for a reason! Great content.',
+        time: '1h ago',
+        likes: 15,
+        liked: false
+      },
+      {
+        id: 2,
+        username: 'u/TrendingFan',
+        text: 'Love seeing this kind of content on the front page.',
+        time: '45m ago',
+        likes: 12,
+        liked: false
+      },
+      {
+        id: 3,
+        username: 'u/CommunityMember',
+        text: 'This deserves all the upvotes it\'s getting!',
+        time: '30m ago',
+        likes: 8,
+        liked: false
+      }
+    ]);
     const router = useRouter();
     const pathname = usePathname();
+    const { themeColors } = useTheme();
+
+    // Filter posts by search text
+    const filteredPosts = searchText.trim() === '' ? posts : posts.filter(post => {
+      const q = searchText.toLowerCase();
+      return (
+        post.title.toLowerCase().includes(q) ||
+        post.user.toLowerCase().includes(q) ||
+        (post.content && post.content.toLowerCase().includes(q))
+      );
+    });
+
+    const handleSearchIcon = () => setSearchOpen(true);
+    const handleCancelSearch = () => { setSearchOpen(false); setSearchText(''); };
 
     const handleLike = (id) => {
         setPosts(posts => posts.map(post => {
@@ -135,33 +181,106 @@ const PopularScreen = () => {
         }));
       };
 
+    const handleComment = (id) => {
+      const post = posts.find(p => p.id === id);
+      setSelectedPost(post);
+      setCommentModalVisible(true);
+    };
+
+    const handleAddComment = (text, replyingTo = null) => {
+      const newComment = {
+        id: Date.now(),
+        username: 'u/CurrentUser',
+        text: text,
+        time: 'Just now',
+        likes: 0,
+        liked: false,
+        replyingTo: replyingTo
+      };
+      setComments(prev => [newComment, ...prev]);
+      
+      // Update post comment count
+      setPosts(posts => posts.map(post => {
+        if (post.id === selectedPost.id) {
+          return { ...post, comments: post.comments + 1 };
+        }
+        return post;
+      }));
+    };
+
+    const handleLikeComment = (commentId) => {
+      setComments(comments => comments.map(comment => {
+        if (comment.id === commentId) {
+          if (comment.liked) {
+            return { ...comment, liked: false, likes: comment.likes - 1 };
+          } else {
+            return { ...comment, liked: true, likes: comment.likes + 1 };
+          }
+        }
+        return comment;
+      }));
+    };
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: themeColors.background }] }>
             <Stack.Screen options={{ headerShown: false }} />
-            <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => { setLastTabPath(pathname); setProfileModalVisible(true); }} />
+            {/* Search Bar */}
+            {searchOpen ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 40, backgroundColor: themeColors.background, borderBottomWidth: 1, borderColor: themeColors.border }}>
+                <Ionicons name="search" size={22} color={themeColors.icon} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={{ flex: 1, fontSize: 18, color: themeColors.text, paddingVertical: 8 }}
+                  placeholder="Search posts"
+                  placeholderTextColor={themeColors.textSecondary}
+                  value={searchText}
+                  onChangeText={setSearchText}
+                  autoFocus
+                />
+                {searchText.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchText('')} style={{ marginHorizontal: 4 }}>
+                    <Ionicons name="close-circle" size={22} color={themeColors.icon} />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={handleCancelSearch} style={{ marginLeft: 8 }}>
+                  <Text style={{ color: themeColors.accent || '#2E45A3', fontSize: 16 }}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            {/* Header */}
+            {!searchOpen && (
+              <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => { setLastTabPath(pathname); setProfileModalVisible(true); }} onSearchPress={handleSearchIcon} />
+            )}
             <PopupMenu visible={menuOpen} router={router} />
             <ProfileModal visible={profileModalVisible} onClose={() => setProfileModalVisible(false)} onLogout={() => { setProfileModalVisible(false); if (lastTabPath) router.replace(lastTabPath); }} lastTabPath={lastTabPath} />
+            
+            {/* Comment Modal */}
+            {selectedPost && (
+              <CommentModal
+                visible={commentModalVisible}
+                onClose={() => setCommentModalVisible(false)}
+                post={selectedPost}
+                comments={comments}
+                onAddComment={handleAddComment}
+                onLikeComment={handleLikeComment}
+                onReplyComment={() => {}}
+                themeColors={themeColors}
+              />
+            )}
+
             <FlatList
-                data={posts}
-                keyExtractor={item => item.id}
-                renderItem={({ item }) => <Post post={item} onLike={handleLike} onDislike={handleDislike} />}
-                ListHeaderComponent={() => (
-                    <View>
-                        <View style={styles.trendingContainer}>
-                            <Feather name="trending-up" size={24} color="black" />
-                            <Text style={styles.trendingTitle}>Trending Today</Text>
-                        </View>
-                        <FlatList
-                            horizontal
-                            data={data.trending}
-                            keyExtractor={item => item.id}
-                            renderItem={({ item }) => <TrendingCard item={item} />}
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ paddingLeft: 16, paddingVertical: 10, paddingBottom: 20 }}
-                        />
-                    </View>
+                data={filteredPosts}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                    <Post 
+                        post={item} 
+                        onLike={handleLike} 
+                        onDislike={handleDislike} 
+                        onComment={handleComment}
+                        themeColors={themeColors}
+                    />
                 )}
                 ItemSeparatorComponent={() => <View style={{height: 8}} />}
+                contentContainerStyle={styles.postsList}
             />
         </View>
     );
@@ -170,7 +289,6 @@ const PopularScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#DAE0E6',
     },
     header: {
         backgroundColor: '#000',
@@ -280,6 +398,10 @@ const styles = StyleSheet.create({
         color: '#657786',
         fontWeight: 'bold',
       },
+    postsList: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+    },
 });
 
 export default PopularScreen; 

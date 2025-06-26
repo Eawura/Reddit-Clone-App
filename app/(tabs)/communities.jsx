@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../../components/ThemeContext';
 
 // Mock data for communities
 const MOCK_COMMUNITIES = [
@@ -16,6 +17,21 @@ const Communities = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredCommunities, setFilteredCommunities] = useState(MOCK_COMMUNITIES);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const { themeColors } = useTheme();
+
+  // Filter communities by search text
+  const filteredCommunitiesBySearch = searchText.trim() === '' ? filteredCommunities : filteredCommunities.filter(community => {
+    const q = searchText.toLowerCase();
+    return (
+      community.name.toLowerCase().includes(q) ||
+      community.description.toLowerCase().includes(q)
+    );
+  });
+
+  const handleSearchIcon = () => setSearchOpen(true);
+  const handleCancelSearch = () => { setSearchOpen(false); setSearchText(''); };
 
   const handleSearch = (text) => {
     setSearchQuery(text);
@@ -54,7 +70,7 @@ const Communities = () => {
         <Text style={styles.communityIconText}>n/</Text>
       </View>
       <View style={styles.communityInfo}>
-        <Text style={styles.communityName}>n/{item.name}</Text>
+        <Text style={[styles.communityName, { color: themeColors.text }]}>n/{item.name}</Text>
         <Text style={styles.communityMembers}>{item.members} members</Text>
         <Text style={styles.communityDescription} numberOfLines={2}>
           {item.description}
@@ -64,22 +80,45 @@ const Communities = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }] }>
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search communities"
-          placeholderTextColor="#666"
-          value={searchQuery}
-          onChangeText={handleSearch}
-        />
-      </View>
-
+      {searchOpen ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 40, backgroundColor: themeColors.background, borderBottomWidth: 1, borderColor: themeColors.border }}>
+          <Ionicons name="search" size={22} color={themeColors.icon} style={{ marginRight: 8 }} />
+          <TextInput
+            style={{ flex: 1, fontSize: 18, color: themeColors.text, paddingVertical: 8 }}
+            placeholder="Search communities"
+            placeholderTextColor={themeColors.textSecondary}
+            value={searchText}
+            onChangeText={setSearchText}
+            autoFocus
+          />
+          {searchText.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchText('')} style={{ marginHorizontal: 4 }}>
+              <Ionicons name="close-circle" size={22} color={themeColors.icon} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={handleCancelSearch} style={{ marginLeft: 8 }}>
+            <Text style={{ color: themeColors.accent || '#2E45A3', fontSize: 16 }}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {/* Search Bar */}
+      {!searchOpen && (
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search communities"
+            placeholderTextColor="#666"
+            value={searchQuery}
+            onChangeText={handleSearch}
+          />
+        </View>
+      )}
       {/* Communities List */}
       <FlatList
-        data={filteredCommunities}
+        data={filteredCommunitiesBySearch}
         renderItem={renderCommunityItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContainer}
@@ -91,7 +130,6 @@ const Communities = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
     paddingTop: 32,
   },
   searchContainer: {
@@ -141,12 +179,10 @@ const styles = StyleSheet.create({
   communityName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#222',
     marginBottom: 2,
   },
   communityMembers: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 4,
   },
   communityDescription: {
