@@ -1,7 +1,7 @@
 import { AntDesign, Entypo, Feather, FontAwesome5 } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const PopupMenu = ({ visible, router }) => {
   const pathname = usePathname();
@@ -42,11 +42,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 8,
     zIndex: 1,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 4px rgba(0,0,0,0.1)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3.84,
+        elevation: 5,
+      },
+    }),
   },
   menuItem: {
     flexDirection: 'row',

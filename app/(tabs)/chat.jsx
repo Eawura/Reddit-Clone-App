@@ -1,9 +1,11 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { usePathname, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import ProfileModal from '../../components/ProfileModal';
+import { useChatContext, useTheme } from '../../components/ThemeContext';
 
 // This object maps avatar file names to their actual image files in the assets folder
-// Makes it easy to reference images by name in our mock data
 const imageMap = {
   'Random.jpg': require('../../assets/images/Random.jpg'),
   'danny-1.webp': require('../../assets/images/danny-1.webp'),
@@ -16,9 +18,9 @@ const imageMap = {
   // Add more mappings as needed
 };
 
-// Here's some mock chat data to simulate real conversations
-// Each object represents a chat with a user
-const mockChats = [
+
+//  represents a chat with a user
+const initialChats = [
   {
     id: '1', // Unique identifier for the chat
     name: 'Tommie Francis', // Name of the contact
@@ -95,64 +97,128 @@ const mockChats = [
 
 // This component renders the top header bar of the chat screen
 // Includes a menu button, the title, and some action icons
-const ChatHeader = () => (
-  <View style={styles.header}>
-    {/* Menu icon on the left */}
-    <TouchableOpacity>
-      <Feather name="menu" size={28} color="#ccc" />
-    </TouchableOpacity>
-    {/* Centered title */}
-    <Text style={styles.headerTitle}>Chat</Text>
-    {/* Icons on the right: search and profile */}
-    <View style={styles.headerIcons}>
-      <TouchableOpacity style={{ marginRight: 16 }}>
-        <Ionicons name="search" size={24} color="#ccc" />
-      </TouchableOpacity>
-      <TouchableOpacity>
-        <Ionicons name="person-circle-outline" size={28} color="#ccc" />
-      </TouchableOpacity>
+const ChatHeader = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
+  const router = useRouter();
+  const { themeColors } = useTheme();
+  return (
+    <View style={[styles.header, { backgroundColor: themeColors.background }] }>
+      {/* Remove menu icon */}
+      {/* <TouchableOpacity onPress={() => setMenuOpen(open => !open)}>
+        <Feather name="menu" size={28} color={themeColors.icon} />
+      </TouchableOpacity> */}
+      <Text style={[styles.headerTitle, { color: '#2E45A3' }]}>Chat</Text>
+      <View style={styles.headerIcons}>
+        <TouchableOpacity style={{ marginRight: 16 }} onPress={onSearchPress}>
+          <Ionicons name="search" size={24} color={themeColors.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onProfilePress}>
+          <Ionicons name="person-circle-outline" size={28} color={themeColors.icon} />
+        </TouchableOpacity>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 // This component represents a single row in the chat list
 // It shows the avatar, name, last message, time, and unread badge if needed
-const ChatRow = ({ chat }) => (
-  <View style={styles.row}>
-    {/* User avatar */}
-    <Image source={imageMap[chat.avatar]} style={styles.avatar} />
-    {/* Name and last message */}
-    <View style={styles.textContainer}>
-      <Text style={styles.name}>{chat.name}</Text>
-      {/* Only show one line of the last message, truncate if too long */}
-      <Text style={styles.lastMessage} numberOfLines={1}>{chat.lastMessage}</Text>
-    </View>
-    {/* Time and unread badge on the right */}
-    <View style={styles.rightContainer}>
-      <Text style={styles.time}>{chat.time}</Text>
-      {/* Only show unread badge if there are unread messages */}
-      {chat.unread > 0 && (
-        <View style={styles.unreadBadge}>
-          <Text style={styles.unreadText}>{chat.unread}</Text>
+const ChatRow = ({ chat, onPress }) => {
+  const { themeColors } = useTheme();
+  return (
+    <TouchableOpacity onPress={() => onPress(chat)}>
+      <View style={[styles.row, { backgroundColor: themeColors.card }] }>
+        {/* User avatar */}
+        <Image source={imageMap[chat.avatar]} style={styles.avatar} />
+        {/* Name and last message */}
+        <View style={styles.textContainer}>
+          <Text style={[styles.name, { color: themeColors.text }]}>{chat.name}</Text>
+          {/* Only show one line of the last message, truncate if too long */}
+          <Text style={[styles.lastMessage, { color: themeColors.textSecondary }]} numberOfLines={1}>{chat.lastMessage}</Text>
         </View>
-      )}
-    </View>
-  </View>
-);
+        {/* Time and unread badge on the right */}
+        <View style={styles.rightContainer}>
+          <Text style={[styles.time, { color: chat.unread === 0 ? themeColors.textSecondary : themeColors.accent || '#2946d7' }]}>{chat.time}</Text>
+          {/* Only show unread badge if there are unread messages */}
+          {chat.unread > 0 && (
+            <View style={[styles.unreadBadge, { backgroundColor: themeColors.accent || '#2946d7' }] }>
+              <Text style={[styles.unreadText, { color: themeColors.background }]}>{chat.unread}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 // The main Chat component brings everything together
 // It renders the header and the list of chats
 const Chat = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { chats, setChats } = useChatContext();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [lastTabPath, setLastTabPath] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const { themeColors } = useTheme();
+
+  // Filter chats by search text
+  const filteredChats = searchText.trim() === '' ? chats : chats.filter(chat => {
+    const q = searchText.toLowerCase();
+    return (
+      chat.name.toLowerCase().includes(q) ||
+      chat.lastMessage.toLowerCase().includes(q)
+    );
+  });
+
+  const handleSearchIcon = () => setSearchOpen(true);
+  const handleCancelSearch = () => { setSearchOpen(false); setSearchText(''); };
+
+  const handleChatPress = (chat) => {
+    // Mark as read in context
+    setChats((prevChats) =>
+      prevChats.map((c) =>
+        c.id === chat.id ? { ...c, unread: 0 } : c
+      )
+    );
+    router.push({ pathname: '/chatDetail', params: { chat: JSON.stringify(chat) } });
+  };
+
   return (
     <View style={styles.container}>
-      {/* Top header bar */}
-      <ChatHeader />
+      {/* Search Bar */}
+      {searchOpen ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 40, backgroundColor: themeColors.background, borderBottomWidth: 1, borderColor: themeColors.border }}>
+          <Ionicons name="search" size={22} color={themeColors.icon} style={{ marginRight: 8 }} />
+          <TextInput
+            style={{ flex: 1, fontSize: 18, color: themeColors.text, paddingVertical: 8 }}
+            placeholder="Search chats"
+            placeholderTextColor={themeColors.textSecondary}
+            value={searchText}
+            onChangeText={setSearchText}
+            autoFocus
+          />
+          {searchText.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchText('')} style={{ marginHorizontal: 4 }}>
+              <Ionicons name="close-circle" size={22} color={themeColors.icon} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={handleCancelSearch} style={{ marginLeft: 8 }}>
+            <Text style={{ color: themeColors.accent || '#2E45A3', fontSize: 16 }}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {/* Header */}
+      {!searchOpen && (
+        <ChatHeader menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => { setLastTabPath(pathname); setProfileModalVisible(true); }} onSearchPress={handleSearchIcon} />
+      )}
+      <ProfileModal visible={profileModalVisible} onClose={() => setProfileModalVisible(false)} onLogout={() => { setProfileModalVisible(false); if (lastTabPath) router.replace(lastTabPath); }} lastTabPath={lastTabPath} />
       {/* List of chats using FlatList for performance */}
       <FlatList
-        data={mockChats} // Our chat data
-        keyExtractor={item => item.id} // Unique key for each item
-        renderItem={({ item }) => <ChatRow chat={item} />} // How to render each row
-        ItemSeparatorComponent={() => <View style={styles.separator} />} // Separator between rows
+        data={filteredChats}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => <ChatRow chat={item} onPress={() => handleChatPress(item)} />}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </View>
   );
@@ -163,7 +229,7 @@ const Chat = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff', // White background for the chat list
+    backgroundColor: undefined, // will be set by parent
     paddingTop: 8,
   },
   header: {
@@ -192,7 +258,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
+    backgroundColor: undefined, // will be set by ChatRow
   },
   avatar: {
     width: 44,
@@ -208,11 +274,11 @@ const styles = StyleSheet.create({
   name: {
     fontWeight: 'bold',
     fontSize: 16,
-    color: '#222',
+    color: undefined, // will be set by ChatRow
     marginBottom: 2,
   },
   lastMessage: {
-    color: '#666',
+    color: undefined, // will be set by ChatRow
     fontSize: 14,
   },
   rightContainer: {
@@ -221,12 +287,12 @@ const styles = StyleSheet.create({
     minWidth: 48,
   },
   time: {
-    color: '#2946d7', // Blue accent for time
+    color: undefined, // will be set by ChatRow
     fontSize: 13,
     marginBottom: 6,
   },
   unreadBadge: {
-    backgroundColor: '#2946d7', // Blue badge for unread count
+    backgroundColor: undefined, // will be set by ChatRow
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -235,16 +301,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   unreadText: {
-    color: '#fff', // White text for unread count
+    color: undefined, // will be set by ChatRow
     fontWeight: 'bold',
     fontSize: 13,
   },
   separator: {
     height: 1,
-    backgroundColor: '#f0f0f0', // Light gray separator
+    backgroundColor: undefined, // will be set by parent if needed
     marginLeft: 74, // Indent so it doesn't go under the avatar
   },
 });
-
-// Exporting our main Chat component so it can be used in the app
 export default Chat;
