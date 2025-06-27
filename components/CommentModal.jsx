@@ -170,11 +170,18 @@ const styles = StyleSheet.create({
     height: '85%',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px -2px 8px rgba(0,0,0,0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 10,
+      },
+    }),
   },
   commentModalHeader: {
     flexDirection: 'row',

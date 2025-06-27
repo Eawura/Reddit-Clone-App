@@ -1,10 +1,13 @@
 import { Slot } from 'expo-router';
+import { BookmarkProvider } from '../components/BookmarkContext';
 import { AppProvider } from '../components/ThemeContext';
 
 export default function RootLayout() {
   return (
     <AppProvider>
-      <Slot />
+      <BookmarkProvider>
+        <Slot />
+      </BookmarkProvider>
     </AppProvider>
   );
 } 

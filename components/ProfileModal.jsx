@@ -2,12 +2,50 @@ import { Entypo, Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useRef, useState } from 'react';
 import { Animated, Dimensions, Image, KeyboardAvoidingView, Modal, PanResponder, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useBookmarks } from './BookmarkContext';
 import { useTheme } from './ThemeContext';
 
 const { width } = Dimensions.get('window');
 const MODAL_WIDTH = width * 0.8;
 
-export default function ProfileModal({ visible, onClose, onLogout }) {
+// Image mapping for profile pictures and post images
+const imageMap = {
+  'curry.jpg': require('../assets/images/curry.jpg'),
+  'Messi.jpg': require('../assets/images/Messi.jpg'),
+  'harry logo.webp': require('../assets/images/harry logo.webp'),
+  'Penguin.jpg': require('../assets/images/Penguin.jpg'),
+  'D.jpg': require('../assets/images/D.jpg'),
+  'K.jpg': require('../assets/images/K.jpg'),
+  'MB.jpg': require('../assets/images/MB.jpg'),
+  'N.webp': require('../assets/images/N.webp'),
+  'Ronaldo.jpg': require('../assets/images/Ronaldo.jpg'),
+  'SGA.jpg': require('../assets/images/SGA.jpg'),
+  'T1.jpg': require('../assets/images/T1.jpg'),
+  'w1.jpg': require('../assets/images/w1.jpg'),
+  'yu.jpg': require('../assets/images/yu.jpg'),
+  'Random.jpg': require('../assets/images/Random.jpg'),
+  'Grand.jpeg': require('../assets/images/Grand.jpeg'),
+  'Ramen.jpeg': require('../assets/images/Ramen.jpeg'),
+  'M8 bmw.jpg': require('../assets/images/M8 bmw.jpg'),
+  "euro's league logo.jpg": require("../assets/images/euro's league logo.jpg"),
+  'fifa logo.jpg': require('../assets/images/fifa logo.jpg'),
+  'Logo-NBA.png': require('../assets/images/Logo-NBA.png'),
+  'daniel-radcliffes-acting-v0-zhahfgw6fj5f1.webp': require('../assets/images/daniel-radcliffes-acting-v0-zhahfgw6fj5f1.webp'),
+  'danny-1.webp': require('../assets/images/danny-1.webp'),
+  // Commenter profile images
+  'commenter1.jpg': require('../assets/images/Commenter1.jpg'),
+  'commenter2.jpg': require('../assets/images/Commenter2.jpg'),
+  'commenter3.jpg': require('../assets/images/Commenter3.jpg'),
+  'commenter4.jpg': require('../assets/images/Commenter4.jpg'),
+  'commenter5.jpg': require('../assets/images/Commenter5.jpg'),
+  'commenter6.jpg': require('../assets/images/Commenter6.jpg'),
+  'commenter7.jpg': require('../assets/images/Commenter7.jpg'),
+  'commenter8.jpg': require('../assets/images/Commenter8.jpg'),
+  'commenter9.jpg': require('../assets/images/Commenter9.jpg'),
+  'commenter10.jpg': require('../assets/images/Commenter10.jpg'),
+};
+
+export default function ProfileModal({ visible, onClose, onLogout, bookmarks = [], onUnbookmark }) {
   const translateX = useRef(new Animated.Value(MODAL_WIDTH)).current;
   const [online, setOnline] = useState(true);
   const [showFAQ, setShowFAQ] = useState(false);
@@ -22,6 +60,7 @@ export default function ProfileModal({ visible, onClose, onLogout }) {
   const [showProfileDetails, setShowProfileDetails] = useState(false);
   const [editUsername, setEditUsername] = useState('u/User');
   const [editBio, setEditBio] = useState('This is my bio.');
+  const { collections, removeBookmark } = useBookmarks();
 
   // FAQ data
   const faqData = [
@@ -56,42 +95,6 @@ export default function ProfileModal({ visible, onClose, onLogout }) {
     {
       question: "How do I edit my post?",
       answer: "Tap the three dots menu on your own post and select 'Edit' to modify the content. Note that edited posts will show an 'edited' indicator."
-    }
-  ];
-
-  // Sample bookmarks data
-  const bookmarksData = [
-    {
-      id: 1,
-      title: "Amazing sunset view from my balcony",
-      community: "r/pics",
-      author: "u/sunset_lover",
-      time: "2 hours ago",
-      upvotes: 1247
-    },
-    {
-      id: 2,
-      title: "What's your favorite programming language and why?",
-      community: "r/programming",
-      author: "u/code_enthusiast",
-      time: "1 day ago",
-      upvotes: 892
-    },
-    {
-      id: 3,
-      title: "Just finished building my first gaming PC",
-      community: "r/buildapc",
-      author: "u/pc_builder",
-      time: "3 days ago",
-      upvotes: 2156
-    },
-    {
-      id: 4,
-      title: "Best pizza places in NYC?",
-      community: "r/nyc",
-      author: "u/foodie_traveler",
-      time: "1 week ago",
-      upvotes: 567
     }
   ];
 
@@ -288,38 +291,41 @@ export default function ProfileModal({ visible, onClose, onLogout }) {
         transparent
         onRequestClose={() => setShowBookmarks(false)}
       >
-        <View style={[styles.faqBackdrop, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.faqModal, { backgroundColor: themeColors.background }]}>
-            <View style={styles.faqHeader}>
+        <View style={[styles.faqBackdrop, { backgroundColor: 'rgba(0,0,0,0.5)' }]}> 
+          <View style={[styles.faqModal, { backgroundColor: themeColors.background }]}> 
+            <View className="faqHeader">
               <Text style={[styles.faqTitle, { color: themeColors.text }]}>Bookmarks</Text>
               <TouchableOpacity onPress={() => setShowBookmarks(false)}>
                 <Ionicons name="close" size={28} color={themeColors.icon} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.faqContent} showsVerticalScrollIndicator={false}>
-              {bookmarksData.length > 0 ? (
-                bookmarksData.map((bookmark) => (
-                  <TouchableOpacity key={bookmark.id} style={[styles.bookmarkItem, { borderBottomColor: themeColors.border }]}>
-                    <View style={styles.bookmarkHeader}>
-                      <Text style={[styles.bookmarkCommunity, { color: themeColors.textSecondary }]}>{bookmark.community}</Text>
-                      <Text style={[styles.bookmarkTime, { color: themeColors.textSecondary }]}>{bookmark.time}</Text>
-                    </View>
-                    <Text style={[styles.bookmarkTitle, { color: themeColors.text }]}>{bookmark.title}</Text>
-                    <View style={styles.bookmarkFooter}>
-                      <Text style={[styles.bookmarkAuthor, { color: themeColors.textSecondary }]}>{bookmark.author}</Text>
-                      <View style={styles.bookmarkStats}>
-                        <Ionicons name="arrow-up" size={16} color="#FF4500" />
-                        <Text style={[styles.bookmarkUpvotes, { color: themeColors.textSecondary }]}>{bookmark.upvotes}</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))
-              ) : (
+              {Object.keys(collections).length === 0 || Object.values(collections).every(arr => arr.length === 0) ? (
                 <View style={styles.emptyState}>
                   <Feather name="bookmark" size={48} color={themeColors.textSecondary} />
                   <Text style={[styles.emptyStateText, { color: themeColors.textSecondary }]}>No bookmarks yet</Text>
                   <Text style={[styles.emptyStateSubtext, { color: themeColors.textSecondary }]}>Save posts you want to read later</Text>
                 </View>
+              ) : (
+                Object.entries(collections).map(([collection, posts]) => (
+                  posts.length === 0 ? null : (
+                    <View key={collection} style={{ marginBottom: 18 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 6, color: themeColors.text }}>{collection}</Text>
+                      {posts.map(post => (
+                        <View key={post.id} style={styles.bookmarkItem}>
+                          <Image source={post.image ? (post.image.startsWith('http') ? { uri: post.image } : imageMap[post.image]) : null} style={styles.bookmarkImage} />
+                          <View style={{ flex: 1, marginLeft: 10 }}>
+                            <Text style={styles.bookmarkTitle} numberOfLines={1}>{post.title}</Text>
+                            <Text style={styles.bookmarkUser} numberOfLines={1}>{post.user}</Text>
+                          </View>
+                          <TouchableOpacity onPress={() => removeBookmark(post.id, collection)}>
+                            <Feather name="bookmark" size={22} color="#2E45A3" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  )
+                ))
               )}
             </ScrollView>
           </View>
@@ -506,11 +512,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 32,
     paddingHorizontal: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: -2, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: '-2px 0px 8px rgba(0,0,0,0.1)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: -2, height: 0 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 10,
+      },
+    }),
   },
   logout: {
     position: 'absolute',
@@ -583,11 +596,18 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
     borderRadius: 16,
     padding: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(0,0,0,0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 10,
+      },
+    }),
   },
   faqHeader: {
     flexDirection: 'row',
@@ -625,17 +645,10 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
   },
-  bookmarkHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  bookmarkCommunity: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  bookmarkTime: {
-    fontSize: 12,
+  bookmarkImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   bookmarkTitle: {
     fontSize: 16,
@@ -643,21 +656,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 22,
   },
-  bookmarkFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  bookmarkAuthor: {
+  bookmarkUser: {
     fontSize: 12,
-  },
-  bookmarkStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  bookmarkUpvotes: {
-    fontSize: 12,
-    marginLeft: 4,
   },
   emptyState: {
     alignItems: 'center',
@@ -731,11 +731,18 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 18,
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px -2px 8px rgba(0,0,0,0.15)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 10,
+      },
+    }),
   },
   avatarPickerTitle: {
     fontSize: 18,
@@ -766,11 +773,18 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
     borderRadius: 16,
     padding: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(0,0,0,0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 10,
+      },
+    }),
   },
   profileDetailsAvatar: {
     width: 110,

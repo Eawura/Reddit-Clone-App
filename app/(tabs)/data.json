@@ -3,40 +3,40 @@
     {
       "id": "1",
       "user": "n/harryPotter",
-      "time": "4 mins ago",
+      "timestamp": "2024-06-07T12:55:00.000Z",
       "title": "Daniel Radcliffe's acting",
       "image": "daniel-radcliffes-acting-v0-zhahfgw6fj5f1.webp",
       "likes": 77,
-      "comments": 10,
+      "comments": 4,
       "shares": 11,
       "avatar": "harry logo.webp"
     },
     {
       "id": "2",
       "user": "n/NBA",
-      "time": "3 months ago",
+      "timestamp": "2024-06-07T10:00:00.000Z",
       "title": "Lebron James x Stephen Curry",
       "image": "curry.jpg",
       "likes": 999,
-      "comments": 566,
+      "comments": 4,
       "shares": 0,
       "avatar": "Logo-NBA.png"
     },
     {
       "id": "3",
       "user": "n/Fifa",
-      "time": "1 hour ago",
+      "timestamp": "2024-06-06T13:00:00.000Z",
       "title": "New AI model breaks records!",
       "image": "Messi.jpg",
       "likes": 755,
-      "comments": 33,
+      "comments": 4,
       "shares": 55,
       "avatar": "fifa logo.jpg"
     },
     {
       "id": "4",
       "user": "n/food",
-      "time": "10 mins ago",
+      "timestamp": "2025-06-07T12:30:00.000Z",
       "title": "Check out this delicious ramen bowl 🍜",
       "image": "Ramen.jpeg",
       "likes": 23,
@@ -47,11 +47,11 @@
     {
       "id": "5",
       "user": "n/travel",
-      "time": "2 days ago",
+      "timestamp": "2025-07-04T13:00:00.000Z",
       "title": "Sunset at the Grand Canyon is breathtaking!",
       "image": "Grand.jpeg",
       "likes": 42,
-      "comments": 8,
+      "comments": 4,
       "shares": 9,
       "avatar": "https://randomuser.me/api/portraits/women/5.jpg"
     }

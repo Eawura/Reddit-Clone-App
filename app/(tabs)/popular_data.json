@@ -7,7 +7,7 @@
       "title": "Shai Gilgeous-Alexander is the 12th player in NBA history to score 3,000 total points (regular season and postseason combined) in a single season 🤯👏",
       "image": "SGA.jpg",
       "likes": 7500,
-      "comments": 6100,
+      "comments": 3,
       "shares": 923,
       "avatar": "Logo-NBA.png"
     },
@@ -18,7 +18,7 @@
       "title": "🚨🏆 Portugal win the Nations League!",
       "image": "Ronaldo.jpg",
       "likes": 1000000,
-      "comments": 100,
+      "comments": 3,
       "shares": 566,
       "avatar": "euro's league logo.jpg"
     },
@@ -28,7 +28,7 @@
       "time": "1 hour ago",
       "title": "New AI model breaks records!",
       "image": "Messi.jpg",
-      "likes": 755,
+      "likes": 3,
       "comments": 33,
       "shares": 55,
       "avatar": "fifa logo.jpg"
@@ -40,7 +40,7 @@
       "title": "Check out this delicious ramen bowl 🍜",
       "image": "Ramen.jpeg",
       "likes": 23,
-      "comments": 4,
+      "comments": 3,
       "shares": 2,
       "avatar": "https://randomuser.me/api/portraits/men/4.jpg"
     },
@@ -51,26 +51,11 @@
       "title": "Sunset at the Grand Canyon is breathtaking!",
       "image": "Grand.jpeg",
       "likes": 42,
-      "comments": 8,
+      "comments": 3,
       "shares": 9,
       "avatar": "https://randomuser.me/api/portraits/women/5.jpg"
     }
-  ],
-  "trending": [
-    {
-      "id": "t1",
-      "title": "Cedi Appreciation",
-      "image": "w1.jpg"
-    },
-    {
-      "id": "t2",
-      "title": "Russia-Ukraine war: US allies",
-      "image": "T1.jpg"
-    },
-    {
-      "id": "t3",
-      "title": "Charles Adu-Benni detains",
-      "image": "yu.jpg"
-    }
   ]
+  
+  
 } 

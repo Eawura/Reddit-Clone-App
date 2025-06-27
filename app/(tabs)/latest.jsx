@@ -1,11 +1,52 @@
 import { AntDesign, Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useBookmarks } from '../../components/BookmarkContext';
 import CommentModal from '../../components/CommentModal';
+import ImageModal from '../../components/ImageModal';
+import MoreMenu from '../../components/MoreMenu';
 import PopupMenu from '../../components/PopupMenu';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
+import { getRandomRecentTimestamp, getRelativeTime } from '../../utils/timeUtils';
+
+// Image mapping for profile pictures and post images
+const imageMap = {
+  'curry.jpg': require('../../assets/images/curry.jpg'),
+  'Messi.jpg': require('../../assets/images/Messi.jpg'),
+  'harry logo.webp': require('../../assets/images/harry logo.webp'),
+  'Penguin.jpg': require('../../assets/images/Penguin.jpg'),
+  'D.jpg': require('../../assets/images/D.jpg'),
+  'K.jpg': require('../../assets/images/K.jpg'),
+  'MB.jpg': require('../../assets/images/MB.jpg'),
+  'N.webp': require('../../assets/images/N.webp'),
+  'Ronaldo.jpg': require('../../assets/images/Ronaldo.jpg'),
+  'SGA.jpg': require('../../assets/images/SGA.jpg'),
+  'T1.jpg': require('../../assets/images/T1.jpg'),
+  'w1.jpg': require('../../assets/images/w1.jpg'),
+  'yu.jpg': require('../../assets/images/yu.jpg'),
+  'Random.jpg': require('../../assets/images/Random.jpg'),
+  'Grand.jpeg': require('../../assets/images/Grand.jpeg'),
+  'Ramen.jpeg': require('../../assets/images/Ramen.jpeg'),
+  'M8 bmw.jpg': require('../../assets/images/M8 bmw.jpg'),
+  'euro\'s league logo.jpg': require('../../assets/images/euro\'s league logo.jpg'),
+  'fifa logo.jpg': require('../../assets/images/fifa logo.jpg'),
+  'Logo-NBA.png': require('../../assets/images/Logo-NBA.png'),
+  'daniel-radcliffes-acting-v0-zhahfgw6fj5f1.webp': require('../../assets/images/daniel-radcliffes-acting-v0-zhahfgw6fj5f1.webp'),
+  'danny-1.webp': require('../../assets/images/danny-1.webp'),
+  // Commenter profile images
+  'commenter1.jpg': require('../../assets/images/Commenter1.jpg'),
+  'commenter2.jpg': require('../../assets/images/Commenter2.jpg'),
+  'commenter3.jpg': require('../../assets/images/Commenter3.jpg'),
+  'commenter4.jpg': require('../../assets/images/Commenter4.jpg'),
+  'commenter5.jpg': require('../../assets/images/Commenter5.jpg'),
+  'commenter6.jpg': require('../../assets/images/Commenter6.jpg'),
+  'commenter7.jpg': require('../../assets/images/Commenter7.jpg'),
+  'commenter8.jpg': require('../../assets/images/Commenter8.jpg'),
+  'commenter9.jpg': require('../../assets/images/Commenter9.jpg'),
+  'commenter10.jpg': require('../../assets/images/Commenter10.jpg'),
+};
 
 const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
     const router = useRouter();
@@ -43,58 +84,89 @@ const SortButton = ({ title, active, onPress }) => (
     </TouchableOpacity>
 );
 
-const LatestPost = ({ post, onUpvote, onDownvote, onComment, themeColors }) => (
-    <View style={[styles.postCard, { backgroundColor: themeColors.card }]}>
-        <View style={styles.postHeader}>
-            <View style={styles.postMeta}>
-                <Text style={[styles.subredditText, { color: themeColors.accent || '#FF4500' }]}>r/{post.subreddit}</Text>
-                <Text style={[styles.authorText, { color: themeColors.textSecondary }]}>• Posted by u/{post.author}</Text>
-                <Text style={[styles.timeText, { color: themeColors.textSecondary }]}>• {post.time}</Text>
-            </View>
-            <TouchableOpacity>
-                <Feather name="more-horizontal" size={20} color={themeColors.icon} />
-            </TouchableOpacity>
+const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAward, onShare, themeColors, onMore, isBookmarked }) => (
+    <View style={[styles.postContainer, { backgroundColor: themeColors.card }]}>
+      {/* Post Header */}
+      <View style={styles.postHeader}>
+        <View style={styles.userInfo}>
+          <Image source={imageMap[post.avatar]} style={styles.avatar} />
+          <View style={styles.userDetails}>
+            <Text style={[styles.username, { color: themeColors.text }]}>{post.user}</Text>
+            <Text style={[styles.postTime, { color: themeColors.textSecondary }]}>{getRelativeTime(post.timestamp)}</Text>
+          </View>
         </View>
-        
+        <TouchableOpacity style={styles.moreButton} onPress={() => onMore(post)}>
+          <Feather name="more-horizontal" size={20} color={themeColors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Post Content */}
+      <View style={styles.postContent}>
         <Text style={[styles.postTitle, { color: themeColors.text }]}>{post.title}</Text>
-        <Text style={[styles.postContent, { color: themeColors.textSecondary }]}>{post.content}</Text>
-        
         {post.image && (
-            <Image source={{ uri: post.image }} style={styles.postImage} />
+          <TouchableOpacity onPress={() => onImagePress(post.image)}>
+            <Image 
+              source={imageMap[post.image]} 
+              style={styles.postImage}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
         )}
-        
-        <View style={styles.postActions}>
-            <View style={styles.actionGroup}>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => onUpvote(post.id)}>
-                    <AntDesign 
-                        name={post.upvoted ? 'arrowup' : 'arrowup'} 
-                        size={20} 
-                        color={post.upvoted ? '#FF4500' : themeColors.icon} 
-                    />
-                    <Text style={[styles.actionText, { color: post.upvoted ? '#FF4500' : themeColors.textSecondary }]}>{post.upvotes}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => onDownvote(post.id)}>
-                    <MaterialIcons 
-                        name="heart-broken" 
-                        size={24} 
-                        color={post.downvoted ? '#7193FF' : themeColors.icon} 
-                    />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => onComment(post.id)}>
-                    <Feather name="message-circle" size={20} color={themeColors.icon} />
-                    <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{post.comments}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtn}>
-                    <Feather name="share-2" size={20} color={themeColors.icon} />
-                    <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>Share</Text>
-                </TouchableOpacity>
+      </View>
+
+      {/* Post Actions */}
+      <View style={styles.postActions}>
+        <View style={styles.actionGroup}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => onLike(post.id)}>
+            <AntDesign 
+              name={post.liked ? 'heart' : 'hearto'} 
+              size={22} 
+              color={post.liked ? '#e74c3c' : themeColors.textSecondary} 
+            />
+            <Text style={[styles.actionText, { color: post.liked ? '#e74c3c' : themeColors.textSecondary }]}>
+              {post.likes}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.actionButton} onPress={() => onDislike(post.id)}>
+            <View style={{ position: 'relative' }}>
+              <MaterialIcons 
+                name="heart-broken" 
+                size={24} 
+                color={themeColors.textSecondary} 
+                style={{ opacity: 0.3 }}
+              />
+              {post.disliked && (
+                <MaterialIcons 
+                  name="heart-broken" 
+                  size={24} 
+                  color="#e74c3c" 
+                  style={{ position: 'absolute', top: 0, left: 0 }}
+                />
+              )}
             </View>
-            <TouchableOpacity style={styles.actionBtn}>
-                <Feather name="bookmark" size={20} color={themeColors.icon} />
-            </TouchableOpacity>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.actionButton} onPress={() => onComment(post.id)}>
+            <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
+            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{post.comments}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => onShare(post.id)}>
+            <Feather name="share-2" size={20} color={themeColors.textSecondary} />
+          </TouchableOpacity>
         </View>
+        
+        <View style={styles.actionGroup}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => onAward(post.id)}>
+            <MaterialIcons name={post.awarded ? 'emoji-events' : 'emoji-events'} size={22} color={post.awarded ? '#FFD700' : themeColors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.saveButton} onPress={() => onSave(post.id)}>
+            <Feather name={isBookmarked(post.id) ? 'bookmark' : 'bookmark'} size={20} color={isBookmarked(post.id) ? '#2E45A3' : themeColors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
-);
+  );
 
 const Latest = () => {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -107,10 +179,13 @@ const Latest = () => {
     const [searchText, setSearchText] = useState('');
     const [commentModalVisible, setCommentModalVisible] = useState(false);
     const [selectedPost, setSelectedPost] = useState(null);
+    const [imageModalVisible, setImageModalVisible] = useState(false);
+    const [selectedImage, setSelectedImage] = useState(null);
     const [comments, setComments] = useState([
       {
         id: 1,
         username: 'u/LatestUser1',
+        avatar: 'commenter10.jpg',
         text: 'This is so fresh! Thanks for sharing this.',
         time: '5m ago',
         likes: 12,
@@ -119,6 +194,7 @@ const Latest = () => {
       {
         id: 2,
         username: 'u/NewContentFan',
+        avatar: 'commenter1.jpg',
         text: 'Just saw this too. Great timing!',
         time: '3m ago',
         likes: 8,
@@ -127,6 +203,7 @@ const Latest = () => {
       {
         id: 3,
         username: 'u/CommunityMember',
+        avatar: 'commenter2.jpg',
         text: 'This is exactly what I needed to see right now.',
         time: '1m ago',
         likes: 15,
@@ -134,6 +211,9 @@ const Latest = () => {
       }
     ]);
     const { themeColors } = useTheme();
+    const { bookmarks, toggleBookmark, isBookmarked, collections, DEFAULT_COLLECTION } = useBookmarks();
+    const [moreMenuVisible, setMoreMenuVisible] = useState(false);
+    const [selectedMorePost, setSelectedMorePost] = useState(null);
 
     const sortOptions = ['New', 'Hot', 'Top', 'Rising'];
 
@@ -244,7 +324,15 @@ const Latest = () => {
         }
     ];
 
-    const [posts, setPosts] = useState(latestData);
+    const [posts, setPosts] = useState(
+      latestData.map(p => ({
+        ...p,
+        liked: false,
+        disliked: false,
+        awarded: false,
+        timestamp: getRandomRecentTimestamp(),
+      }))
+    );
 
     const handleUpvote = (id) => {
         setPosts(posts => posts.map(post => {
@@ -263,14 +351,16 @@ const Latest = () => {
     const handleDownvote = (id) => {
         setPosts(posts => posts.map(post => {
             if (post.id === id) {
-                const wasUpvoted = post.upvoted;
-                const newUpvotes = wasUpvoted ? post.upvotes - 1 : post.upvotes;
-                return { 
-                    ...post, 
-                    downvoted: !post.downvoted, 
-                    upvoted: false,
-                    upvotes: newUpvotes
-                };
+                if (post.downvoted) {
+                    return { ...post, downvoted: false };
+                } else {
+                    return { 
+                        ...post, 
+                        downvoted: true, 
+                        upvoted: false,
+                        upvotes: post.upvotes - 1
+                    };
+                }
             }
             return post;
         }));
@@ -329,6 +419,38 @@ const Latest = () => {
     const handleSearchIcon = () => setSearchOpen(true);
     const handleCancelSearch = () => { setSearchOpen(false); setSearchText(''); };
 
+    // Handle image press for full-screen viewing
+    const handleImagePress = (imageName) => {
+      setSelectedImage(imageMap[imageName] || { uri: imageName });
+      setImageModalVisible(true);
+    };
+
+    const handleSave = (id) => {
+      const post = posts.find(p => p.id === id);
+      if (post) {
+        toggleBookmark({
+          id: post.id,
+          title: post.title,
+          image: post.image,
+          user: post.user,
+        });
+      }
+    };
+
+    const handleAward = (id) => {
+      setPosts(posts => posts.map(post => post.id === id ? { ...post, awarded: !post.awarded } : post));
+    };
+
+    const handleShare = (id) => {
+      // Frontend only: show alert or feedback
+      alert('Share post ' + id);
+    };
+
+    const handleMorePress = (post) => {
+      setSelectedMorePost(post);
+      setMoreMenuVisible(true);
+    };
+
     return (
         <View style={[styles.container, { backgroundColor: themeColors.background }] }>
             <Stack.Screen options={{ headerShown: false }} />
@@ -374,6 +496,17 @@ const Latest = () => {
                 themeColors={themeColors}
               />
             )}
+
+            {/* Image Modal */}
+            <ImageModal
+              visible={imageModalVisible}
+              imageSource={selectedImage}
+              onClose={() => {
+                setImageModalVisible(false);
+                setSelectedImage(null);
+              }}
+              themeColors={themeColors}
+            />
             
             <View style={styles.sortContainer}>
                 <FlatList
@@ -396,16 +529,37 @@ const Latest = () => {
                 data={filteredPosts}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                    <LatestPost 
-                        post={item} 
-                        onUpvote={handleUpvote} 
-                        onDownvote={handleDownvote}
+                    <Post 
+                        post={{...item, saved: isBookmarked(item.id, DEFAULT_COLLECTION)}}
+                        onLike={handleUpvote} 
+                        onDislike={handleDownvote}
                         onComment={handleComment}
+                        onImagePress={handleImagePress}
+                        onSave={handleSave}
+                        onAward={handleAward}
+                        onShare={handleShare}
+                        onMore={handleMorePress}
                         themeColors={themeColors}
+                        isBookmarked={isBookmarked}
                     />
                 )}
-                ItemSeparatorComponent={() => <View style={{height: 12}} />}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
                 contentContainerStyle={styles.postsList}
+            />
+
+            <MoreMenu
+              visible={moreMenuVisible}
+              onClose={() => setMoreMenuVisible(false)}
+              onReport={() => { setMoreMenuVisible(false); alert('Reported!'); }}
+              onHide={() => { setMoreMenuVisible(false); alert('Post hidden!'); }}
+              onCopyLink={() => {
+                setMoreMenuVisible(false);
+                alert('Link copied: https://neoping.app/post/' + (selectedMorePost?.id || ''));
+              }}
+              onShare={() => {
+                setMoreMenuVisible(false);
+                alert('Share: ' + (selectedMorePost?.title || ''));
+              }}
             />
         </View>
     );
@@ -414,26 +568,32 @@ const Latest = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#f7f7f7',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        backgroundColor: '#111',
+        paddingTop: 50,
         paddingHorizontal: 16,
-        paddingTop: 40,
-        paddingBottom: 10,
+        paddingBottom: 12,
     },
     headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     logoText: {
-        fontSize: 22,
+        color: '#2E45A3',
         fontWeight: 'bold',
+        fontSize: 22,
+        flexDirection: 'row',
+        alignItems: 'center',
         marginLeft: 10,
     },
     headerIcons: {
         flexDirection: 'row',
+        alignItems: 'center',
     },
     sortContainer: {
         backgroundColor: '#fff',
@@ -466,76 +626,102 @@ const styles = StyleSheet.create({
     postsList: {
         padding: 8,
     },
-    postCard: {
+    postContainer: {
         backgroundColor: '#fff',
-        borderRadius: 8,
-        padding: 16,
         marginBottom: 8,
+        borderRadius: 8,
+        marginHorizontal: 8,
+        padding: 16,
+        ...Platform.select({
+            web: {
+                boxShadow: '0px 1px 3px rgba(0,0,0,0.1)',
+            },
+            default: {
+                shadowColor: '#000',
+                shadowOpacity: 0.1,
+                shadowRadius: 3,
+                elevation: 2,
+            },
+        }),
     },
     postHeader: {
         flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 8,
+        marginBottom: 12,
     },
-    postMeta: {
+    userInfo: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
     },
-    subredditText: {
-        fontWeight: 'bold',
-        fontSize: 14,
-        color: '#1a1a1a',
+    avatar: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        marginRight: 12,
     },
-    authorText: {
-        fontSize: 12,
-        color: '#657786',
-        marginLeft: 4,
+    userDetails: {
+        flex: 1,
     },
-    timeText: {
-        fontSize: 12,
-        color: '#657786',
-        marginLeft: 4,
+    username: {
+        fontWeight: '600',
+        fontSize: 15,
+        marginBottom: 2,
+    },
+    postTime: {
+        fontSize: 13,
+        opacity: 0.7,
+    },
+    moreButton: {
+        padding: 4,
+    },
+    postContent: {
+        marginBottom: 12,
     },
     postTitle: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '500',
         lineHeight: 22,
-        marginBottom: 8,
-        color: '#1a1a1a',
-    },
-    postContent: {
-        fontSize: 14,
-        lineHeight: 20,
-        color: '#657786',
-        marginBottom: 8,
+        marginBottom: 12,
     },
     postImage: {
         width: '100%',
         height: 200,
         borderRadius: 8,
-        marginBottom: 12,
+        backgroundColor: '#f0f0f0',
     },
     postActions: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
     },
     actionGroup: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    actionBtn: {
+    actionButton: {
         flexDirection: 'row',
         alignItems: 'center',
         marginRight: 20,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 4,
     },
     actionText: {
         marginLeft: 6,
-        color: '#657786',
-        fontWeight: '500',
         fontSize: 14,
+        fontWeight: '500',
+    },
+    saveButton: {
+        padding: 4,
+    },
+    separator: {
+        height: 8,
+        backgroundColor: 'transparent',
     },
 });
 

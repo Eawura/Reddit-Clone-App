@@ -6,7 +6,6 @@ import ProfileModal from '../../components/ProfileModal';
 import { useChatContext, useTheme } from '../../components/ThemeContext';
 
 // This object maps avatar file names to their actual image files in the assets folder
-// Makes it easy to reference images by name in our mock data
 const imageMap = {
   'Random.jpg': require('../../assets/images/Random.jpg'),
   'danny-1.webp': require('../../assets/images/danny-1.webp'),
@@ -19,8 +18,8 @@ const imageMap = {
   // Add more mappings as needed
 };
 
-// Here's some mock chat data to simulate real conversations
-// Each object represents a chat with a user
+
+//  represents a chat with a user
 const initialChats = [
   {
     id: '1', // Unique identifier for the chat
@@ -312,6 +311,4 @@ const styles = StyleSheet.create({
     marginLeft: 74, // Indent so it doesn't go under the avatar
   },
 });
-
-// Exporting our main Chat component so it can be used in the app
 export default Chat;
