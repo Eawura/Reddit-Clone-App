@@ -506,7 +506,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     width: MODAL_WIDTH,
-    backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderBottomLeftRadius: 24,
     alignItems: 'center',

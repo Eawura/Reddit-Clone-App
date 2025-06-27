@@ -58,7 +58,7 @@ const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
             <View style={styles.headerLeft}>
         {/* App Logo and Menu Toggle */}
             <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
-          <Text style={[styles.logoText, { color: '#2E45A3' } ]}>News</Text>
+          <Text style={[styles.logoText, { color: themeColors.accent } ]}>News</Text>
           <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color={themeColors.icon} />
             </TouchableOpacity>
             </View>
@@ -77,14 +77,25 @@ const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
 };
 
 // Category Button Component - For filtering news by category
-const CategoryButton = ({ title, active, onPress }) => (
+const CategoryButton = ({ title, active, onPress }) => {
+  const { themeColors } = useTheme();
+  return (
     <TouchableOpacity 
-        style={[styles.categoryButton, active && styles.activeCategoryButton]} 
+        style={[
+          styles.categoryButton, 
+          { backgroundColor: themeColors.card },
+          active && { backgroundColor: themeColors.accent }
+        ]} 
         onPress={onPress}
     >
-        <Text style={[styles.categoryText, active && styles.activeCategoryText]}>{title}</Text>
+        <Text style={[
+          styles.categoryText, 
+          { color: themeColors.textSecondary },
+          active && { color: themeColors.background }
+        ]}>{title}</Text>
     </TouchableOpacity>
-);
+  );
+};
 
 // Main Post Component - Displays individual posts in the news feed
 const Post = ({ post, onLike, onDislike, onComment, themeColors }) => (
@@ -616,7 +627,7 @@ const News = () => {
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={handleCancelSearch} style={{ marginLeft: 8 }}>
-            <Text style={{ color: themeColors.accent || '#2E45A3', fontSize: 16 }}>Cancel</Text>
+            <Text style={{ color: themeColors.accent, fontSize: 16 }}>Cancel</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -651,7 +662,7 @@ const News = () => {
         themeColors={themeColors}
       />
             
-            <View style={styles.categoriesContainer}>
+            <View style={[styles.categoriesContainer, { backgroundColor: themeColors.background, borderBottomWidth: 1 }]}>
                 <FlatList
                     horizontal
                     data={categories}
@@ -738,10 +749,8 @@ const News = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    backgroundColor: '#f7f7f7',
   },
   postContainer: {
-    backgroundColor: '#fff',
     marginBottom: 8,
     borderRadius: 8,
     marginHorizontal: 8,
@@ -803,7 +812,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
   },
   postActions: {
     flexDirection: 'row',
@@ -811,7 +819,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
   actionGroup: {
     flexDirection: 'row',
@@ -837,7 +844,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-    backgroundColor: '#111',
     paddingTop: 50,
         paddingHorizontal: 16,
     paddingBottom: 12,
@@ -847,7 +853,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     logoText: {
-        color: '#2E45A3',
     fontWeight: 'bold',
         fontSize: 22,
     flexDirection: 'row',
@@ -859,10 +864,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     },
     categoriesContainer: {
-        backgroundColor: '#fff',
         paddingVertical: 8,
         borderBottomWidth: 1,
-        borderBottomColor: '#e1e8ed',
     },
     categoriesList: {
         paddingHorizontal: 16,
@@ -872,28 +875,23 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         marginRight: 8,
         borderRadius: 20,
-        backgroundColor: '#f7f9fa',
     },
     activeCategoryButton: {
-        backgroundColor: '#2E45A3',
     },
     categoryText: {
         fontSize: 14,
         fontWeight: '500',
-        color: '#657786',
     },
     activeCategoryText: {
-        color: '#fff',
         fontWeight: 'bold',
     },
     newsList: {
         padding: 8,
     },
     newsCard: {
-        backgroundColor: '#fff',
-    marginBottom: 8,
-        borderRadius: 8,
-    marginHorizontal: 8,
+    marginBottom: 12,
+        borderRadius: 16,
+    marginHorizontal: 12,
         padding: 16,
     ...Platform.select({
       web: {
@@ -939,34 +937,44 @@ const styles = StyleSheet.create({
         marginLeft: 4,
     },
   newsContent: {
-    marginBottom: 12,
+    marginBottom: 16,
     },
     newsTitle: {
-        fontSize: 16,
-    fontWeight: '500',
-        lineHeight: 22,
+        fontSize: 18,
+    fontWeight: '600',
+        lineHeight: 24,
     marginBottom: 12,
-        color: '#1a1a1a',
     },
     newsExcerpt: {
-        fontSize: 14,
-        lineHeight: 20,
-        color: '#657786',
+        fontSize: 15,
+        lineHeight: 22,
         marginBottom: 12,
     },
   newsImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    height: 300,
+    borderRadius: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+      },
+    }),
   },
     newsActions: {
         flexDirection: 'row',
     alignItems: 'center',
         justifyContent: 'space-between',
-    paddingTop: 8,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
     },
   newsActionGroup: {
         flexDirection: 'row',

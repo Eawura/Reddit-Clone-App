@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import ProfileModal from '../../components/ProfileModal';
 import { useChatContext, useTheme } from '../../components/ThemeContext';
 
@@ -106,7 +106,7 @@ const ChatHeader = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) =>
       {/* <TouchableOpacity onPress={() => setMenuOpen(open => !open)}>
         <Feather name="menu" size={28} color={themeColors.icon} />
       </TouchableOpacity> */}
-      <Text style={[styles.headerTitle, { color: '#2E45A3' }]}>Chat</Text>
+      <Text style={[styles.headerTitle, { color: themeColors.accent }]}>Chat</Text>
       <View style={styles.headerIcons}>
         <TouchableOpacity style={{ marginRight: 16 }} onPress={onSearchPress}>
           <Ionicons name="search" size={24} color={themeColors.icon} />
@@ -127,7 +127,7 @@ const ChatRow = ({ chat, onPress }) => {
     <TouchableOpacity onPress={() => onPress(chat)}>
       <View style={[styles.row, { backgroundColor: themeColors.card }] }>
         {/* User avatar */}
-        <Image source={imageMap[chat.avatar]} style={styles.avatar} />
+        <Image source={imageMap[chat.avatar]} style={[styles.avatar, { backgroundColor: themeColors.border }]} />
         {/* Name and last message */}
         <View style={styles.textContainer}>
           <Text style={[styles.name, { color: themeColors.text }]}>{chat.name}</Text>
@@ -136,10 +136,10 @@ const ChatRow = ({ chat, onPress }) => {
         </View>
         {/* Time and unread badge on the right */}
         <View style={styles.rightContainer}>
-          <Text style={[styles.time, { color: chat.unread === 0 ? themeColors.textSecondary : themeColors.accent || '#2946d7' }]}>{chat.time}</Text>
+          <Text style={[styles.time, { color: chat.unread === 0 ? themeColors.textSecondary : themeColors.accent }]}>{chat.time}</Text>
           {/* Only show unread badge if there are unread messages */}
           {chat.unread > 0 && (
-            <View style={[styles.unreadBadge, { backgroundColor: themeColors.accent || '#2946d7' }] }>
+            <View style={[styles.unreadBadge, { backgroundColor: themeColors.accent }] }>
               <Text style={[styles.unreadText, { color: themeColors.background }]}>{chat.unread}</Text>
             </View>
           )}
@@ -185,7 +185,8 @@ const Chat = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <StatusBar barStyle={themeColors.background === '#fff' ? 'dark-content' : 'light-content'} backgroundColor={themeColors.background} />
       {/* Search Bar */}
       {searchOpen ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 40, backgroundColor: themeColors.background, borderBottomWidth: 1, borderColor: themeColors.border }}>
@@ -204,7 +205,7 @@ const Chat = () => {
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={handleCancelSearch} style={{ marginLeft: 8 }}>
-            <Text style={{ color: themeColors.accent || '#2E45A3', fontSize: 16 }}>Cancel</Text>
+            <Text style={{ color: themeColors.accent, fontSize: 16 }}>Cancel</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -218,9 +219,10 @@ const Chat = () => {
         data={filteredChats}
         keyExtractor={item => item.id}
         renderItem={({ item }) => <ChatRow chat={item} onPress={() => handleChatPress(item)} />}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: themeColors.border }]} />}
+        style={{ backgroundColor: themeColors.background }}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -229,7 +231,6 @@ const Chat = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: undefined, // will be set by parent
     paddingTop: 8,
   },
   header: {
@@ -239,10 +240,8 @@ const styles = StyleSheet.create({
     paddingTop: 40, // Space for status bar
     paddingBottom: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#111', // Dark header background
   },
   headerTitle: {
-    color: '#2946d7', // Blue accent color
     fontWeight: 'bold',
     fontSize: 22,
     flex: 1,
@@ -258,14 +257,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: undefined, // will be set by ChatRow
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 22, // Makes the avatar round
     marginRight: 14,
-    backgroundColor: '#eee', // Placeholder color
   },
   textContainer: {
     flex: 1,
@@ -274,11 +271,9 @@ const styles = StyleSheet.create({
   name: {
     fontWeight: 'bold',
     fontSize: 16,
-    color: undefined, // will be set by ChatRow
     marginBottom: 2,
   },
   lastMessage: {
-    color: undefined, // will be set by ChatRow
     fontSize: 14,
   },
   rightContainer: {
@@ -287,12 +282,10 @@ const styles = StyleSheet.create({
     minWidth: 48,
   },
   time: {
-    color: undefined, // will be set by ChatRow
     fontSize: 13,
     marginBottom: 6,
   },
   unreadBadge: {
-    backgroundColor: undefined, // will be set by ChatRow
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -301,13 +294,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   unreadText: {
-    color: undefined, // will be set by ChatRow
     fontWeight: 'bold',
     fontSize: 13,
   },
   separator: {
     height: 1,
-    backgroundColor: undefined, // will be set by parent if needed
     marginLeft: 74, // Indent so it doesn't go under the avatar
   },
 });

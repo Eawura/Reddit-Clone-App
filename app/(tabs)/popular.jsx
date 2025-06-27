@@ -543,10 +543,9 @@ const styles = StyleSheet.create({
         textShadowRadius: 2,
     },
     postContainer: {
-        backgroundColor: '#fff',
-        marginBottom: 8,
-        borderRadius: 8,
-        marginHorizontal: 8,
+        marginBottom: 12,
+        borderRadius: 16,
+        marginHorizontal: 12,
         padding: 16,
         ...Platform.select({
             web: {

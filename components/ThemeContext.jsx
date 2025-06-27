@@ -9,6 +9,7 @@ const lightColors = {
   textSecondary: '#333',
   border: '#e0e0e0',
   icon: '#222',
+  accent: '#2E45A3',
 };
 
 const darkColors = {
@@ -18,6 +19,7 @@ const darkColors = {
   textSecondary: '#ccc',
   border: '#333',
   icon: '#fff',
+  accent: '#4A90E2',
 };
 
 export function ThemeProvider({ children }) {

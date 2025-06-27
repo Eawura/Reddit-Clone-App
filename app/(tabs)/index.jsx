@@ -652,17 +652,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7f7f7',
   },
   postContainer: {
-    backgroundColor: '#fff',
-    marginBottom: 8,
-    borderRadius: 8,
-    marginHorizontal: 8,
+    marginBottom: 12,
+    borderRadius: 16,
+    marginHorizontal: 12,
     padding: 16,
     ...Platform.select({
       web: {
         boxShadow: '0px 1px 3px rgba(0,0,0,0.1)',
       },
       default: {
-    shadowColor: '#000',
+        shadowColor: '#000',
         shadowOpacity: 0.1,
         shadowRadius: 3,
         elevation: 2,
@@ -702,27 +701,39 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   postContent: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   postTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    lineHeight: 22,
+    fontSize: 18,
+    fontWeight: '600',
+    lineHeight: 24,
     marginBottom: 12,
   },
   postImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    height: 300,
+    borderRadius: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+      },
+    }),
   },
   postActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
   actionGroup: {
     flexDirection: 'row',

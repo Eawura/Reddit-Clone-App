@@ -24,7 +24,6 @@ export default function TabsLayout() {
         },
         headerStyle: {
           backgroundColor: themeColors.background,
-          height: 150,
         },
       }}
     >

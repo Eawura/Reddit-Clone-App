@@ -59,7 +59,7 @@ const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
                     <Feather name="menu" size={28} color={themeColors.icon} />
                 </TouchableOpacity> */}
                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
-                    <Text style={[styles.logoText, { color: '#2E45A3' } ]}>Latest</Text>
+                    <Text style={[styles.logoText, { color: themeColors.accent } ]}>Latest</Text>
                     <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color={themeColors.icon} />
                 </TouchableOpacity>
             </View>
@@ -75,14 +75,25 @@ const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
     )
 };
 
-const SortButton = ({ title, active, onPress }) => (
+const SortButton = ({ title, active, onPress }) => {
+  const { themeColors } = useTheme();
+  return (
     <TouchableOpacity 
-        style={[styles.sortButton, active && styles.activeSortButton]} 
+        style={[
+          styles.sortButton, 
+          { backgroundColor: themeColors.card },
+          active && { backgroundColor: themeColors.accent }
+        ]} 
         onPress={onPress}
     >
-        <Text style={[styles.sortText, active && styles.activeSortText]}>{title}</Text>
+        <Text style={[
+          styles.sortText, 
+          { color: themeColors.textSecondary },
+          active && { color: themeColors.background }
+        ]}>{title}</Text>
     </TouchableOpacity>
-);
+  );
+};
 
 const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAward, onShare, themeColors, onMore, isBookmarked }) => (
     <View style={[styles.postContainer, { backgroundColor: themeColors.card }]}>
@@ -472,7 +483,7 @@ const Latest = () => {
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity onPress={handleCancelSearch} style={{ marginLeft: 8 }}>
-                  <Text style={{ color: themeColors.accent || '#2E45A3', fontSize: 16 }}>Cancel</Text>
+                  <Text style={{ color: themeColors.accent, fontSize: 16 }}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -508,7 +519,7 @@ const Latest = () => {
               themeColors={themeColors}
             />
             
-            <View style={styles.sortContainer}>
+            <View style={[styles.sortContainer, { backgroundColor: themeColors.background, borderBottomColor: themeColors.border }]}>
                 <FlatList
                     horizontal
                     data={sortOptions}
@@ -568,13 +579,11 @@ const Latest = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f7f7f7',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#111',
         paddingTop: 50,
         paddingHorizontal: 16,
         paddingBottom: 12,
@@ -584,7 +593,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     logoText: {
-        color: '#2E45A3',
         fontWeight: 'bold',
         fontSize: 22,
         flexDirection: 'row',
@@ -596,10 +604,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     sortContainer: {
-        backgroundColor: '#fff',
         paddingVertical: 8,
         borderBottomWidth: 1,
-        borderBottomColor: '#e1e8ed',
     },
     sortList: {
         paddingHorizontal: 16,
@@ -609,28 +615,23 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         marginRight: 8,
         borderRadius: 20,
-        backgroundColor: '#f7f9fa',
     },
     activeSortButton: {
-        backgroundColor: '#2E45A3',
     },
     sortText: {
         fontSize: 14,
         fontWeight: '500',
-        color: '#657786',
     },
     activeSortText: {
-        color: '#fff',
         fontWeight: 'bold',
     },
     postsList: {
         padding: 8,
     },
     postContainer: {
-        backgroundColor: '#fff',
-        marginBottom: 8,
-        borderRadius: 8,
-        marginHorizontal: 8,
+        marginBottom: 12,
+        borderRadius: 16,
+        marginHorizontal: 12,
         padding: 16,
         ...Platform.select({
             web: {
@@ -677,27 +678,39 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     postContent: {
-        marginBottom: 12,
+        marginBottom: 16,
     },
     postTitle: {
-        fontSize: 16,
-        fontWeight: '500',
-        lineHeight: 22,
+        fontSize: 18,
+        fontWeight: '600',
+        lineHeight: 24,
         marginBottom: 12,
     },
     postImage: {
         width: '100%',
-        height: 200,
-        borderRadius: 8,
-        backgroundColor: '#f0f0f0',
+        height: 300,
+        borderRadius: 12,
+        marginTop: 8,
+        marginBottom: 4,
+        ...Platform.select({
+            web: {
+                boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
+            },
+            default: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 4,
+            },
+        }),
     },
     postActions: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingTop: 8,
+        paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
     },
     actionGroup: {
         flexDirection: 'row',
