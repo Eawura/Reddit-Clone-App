@@ -21,11 +21,22 @@ public class MailService {
 
     @Async
     public void sendMail(NotificationEmail notificationEmail) {
+        log.info("Sending email to: {}", notificationEmail.getRecipient());
+        log.info("Email subject: {}", notificationEmail.getSubject());
+        log.info("Email body: {}", notificationEmail.getBody());
+
         MimeMessagePreparator preparator = mimeMessage -> {
             MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage, true);
-            messageHelper.setTo(notificationEmail.getRecipient());
-            messageHelper.setSubject(notificationEmail.getSubject());
-            messageHelper.setText(mailContentBuilder.build(notificationEmail.getBody()), true);
+            try {
+                messageHelper.setTo(notificationEmail.getRecipient());
+                messageHelper.setSubject(notificationEmail.getSubject());
+                String emailContent = mailContentBuilder.build(notificationEmail.getBody());
+                messageHelper.setText(emailContent, true);
+                log.info("Email content generated successfully: {}", emailContent);
+            } catch (Exception e) {
+                log.error("Error preparing email: {}", e.getMessage(), e);
+                throw e;
+            }
         };
 
         try {

@@ -20,7 +20,6 @@ public class VerificationToken {
     private User user;
 
     public VerificationToken get() {
-        // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'get'");
     }
 }
