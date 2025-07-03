@@ -5,7 +5,7 @@ import { FlatList, Image, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, 
 import ProfileModal from '../../components/ProfileModal';
 import { useChatContext, useTheme } from '../../components/ThemeContext';
 
-// This object maps avatar file names to their actual image files in the assets folder
+// Avatar image mapping
 const imageMap = {
   'Random.jpg': require('../../assets/images/Random.jpg'),
   'danny-1.webp': require('../../assets/images/danny-1.webp'),
@@ -15,101 +15,22 @@ const imageMap = {
   'K.jpg': require('../../assets/images/K.jpg'),
   'N.webp': require('../../assets/images/N.webp'),
   'yu.jpg': require('../../assets/images/yu.jpg'),
-  // Add more mappings as needed
 };
 
-
-//  represents a chat with a user
-const initialChats = [
-  {
-    id: '1', // Unique identifier for the chat
-    name: 'Tommie Francis', // Name of the contact
-    avatar: 'Random.jpg', // Avatar image file name
-    lastMessage: 'Heyyy', // Last message sent or received
-    time: '19:22', // Time of the last message
-    unread: 1, // Number of unread messages
-  },
-  {
-    id: '2',
-    name: 'Recky',
-    avatar: 'danny-1.webp',
-    lastMessage: 'Good evening. Where are you ...',
-    time: '19:15',
-    unread: 0,
-  },
-  {
-    id: '3',
-    name: 'Dad❤️❤️',
-    avatar: 'D.jpg',
-    lastMessage: "What's up?",
-    time: '18:52',
-    unread: 1,
-  },
-  {
-    id: '4',
-    name: 'Michael Brown',
-    avatar: 'MB.jpg',
-    lastMessage: 'Try exercising a lot.',
-    time: '18:00',
-    unread: 0,
-  },
-  {
-    id: '5',
-    name: 'Suzette Brewer',
-    avatar: 'w1.jpg',
-    lastMessage: '📷 Photo',
-    time: '12:01',
-    unread: 4,
-  },
-  {
-    id: '6',
-    name: 'Kelly Fletcher',
-    avatar: 'K.jpg',
-    lastMessage: '😂😂😂',
-    time: '10:33',
-    unread: 0,
-  },
-  {
-    id: '7',
-    name: 'Neal Mcintosh',
-    avatar: 'N.webp',
-    lastMessage: 'lol',
-    time: '7:59',
-    unread: 0,
-  },
-  {
-    id: '8',
-    name: 'Darius Yu',
-    avatar: 'yu.jpg',
-    lastMessage: 'Thank you 😊',
-    time: '6:06',
-    unread: 1,
-  },
-  {
-    id: '9',
-    name: 'Mary',
-    avatar: 'w1.jpg',
-    lastMessage: 'Photo',
-    time: 'Yesterday',
-    unread: 0,
-  },
-];
-
-// This component renders the top header bar of the chat screen
-// Includes a menu button, the title, and some action icons
-const ChatHeader = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
-  const router = useRouter();
+//Chat Header
+const ChatHeader = ({ onProfilePress, onSearchPress, onNewChatPress }) => {
   const { themeColors } = useTheme();
   return (
-    <View style={[styles.header, { backgroundColor: themeColors.background }] }>
-      {/* Remove menu icon */}
-      {/* <TouchableOpacity onPress={() => setMenuOpen(open => !open)}>
-        <Feather name="menu" size={28} color={themeColors.icon} />
-      </TouchableOpacity> */}
-      <Text style={[styles.headerTitle, { color: themeColors.accent }]}>Chat</Text>
+    <View style={[styles.header, { backgroundColor: themeColors.background }]}>
+      <View style={styles.headerLeft}>
+        <Text style={[styles.headerTitle, { color: themeColors.text }]}>Chats</Text>
+      </View>
       <View style={styles.headerIcons}>
         <TouchableOpacity style={{ marginRight: 16 }} onPress={onSearchPress}>
           <Ionicons name="search" size={24} color={themeColors.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity style={{ marginRight: 16 }} onPress={onNewChatPress}>
+          <Ionicons name="add-circle-outline" size={24} color={themeColors.icon} />
         </TouchableOpacity>
         <TouchableOpacity onPress={onProfilePress}>
           <Ionicons name="person-circle-outline" size={28} color={themeColors.icon} />
@@ -119,43 +40,131 @@ const ChatHeader = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) =>
   );
 };
 
-// This component represents a single row in the chat list
-// It shows the avatar, name, last message, time, and unread badge if needed
-const ChatRow = ({ chat, onPress }) => {
+// Enhanced Chat Row with more features
+const ChatRow = ({ chat, onPress, onLongPress }) => {
   const { themeColors } = useTheme();
+  const [isPressed, setIsPressed] = useState(false);
+  
+  //  message status indicators
+  const renderMessageStatus = () => {
+    if (chat.messageStatus === 'received') {
+      return null;
+    }
+    
+    switch (chat.messageStatus) {
+      case 'sent':
+        return <Ionicons name="checkmark" size={16} color="#8E8E93" />;
+      case 'delivered':
+        return <Ionicons name="checkmark-done" size={16} color="#8E8E93" />;
+      case 'opened':
+        return <Ionicons name="checkmark-done" size={16} color="#34C759" />;
+      default:
+        return null;
+    }
+  };
+
+  // Format time for style
+  const formatTime = (time) => {
+    if (time === 'Yesterday') return 'Yesterday';
+    if (time.includes(':')) return time;
+    return time;
+  };
+
+  // Get chat type indicator
+  const getChatTypeIcon = () => {
+    if (chat.isGroup) return <Ionicons name="people" size={14} color="#8E8E93" />;
+    if (chat.isBroadcast) return <Ionicons name="megaphone" size={14} color="#8E8E93" />;
+    return null;
+  };
+
   return (
-    <TouchableOpacity onPress={() => onPress(chat)}>
-      <View style={[styles.row, { backgroundColor: themeColors.card }] }>
-        {/* User avatar */}
-        <Image source={imageMap[chat.avatar]} style={[styles.avatar, { backgroundColor: themeColors.border }]} />
-        {/* Name and last message */}
-        <View style={styles.textContainer}>
-          <Text style={[styles.name, { color: themeColors.text }]}>{chat.name}</Text>
-          {/* Only show one line of the last message, truncate if too long */}
-          <Text style={[styles.lastMessage, { color: themeColors.textSecondary }]} numberOfLines={1}>{chat.lastMessage}</Text>
-        </View>
-        {/* Time and unread badge on the right */}
-        <View style={styles.rightContainer}>
-          <Text style={[styles.time, { color: chat.unread === 0 ? themeColors.textSecondary : themeColors.accent }]}>{chat.time}</Text>
-          {/* Only show unread badge if there are unread messages */}
-          {chat.unread > 0 && (
-            <View style={[styles.unreadBadge, { backgroundColor: themeColors.accent }] }>
-              <Text style={[styles.unreadText, { color: themeColors.background }]}>{chat.unread}</Text>
+    <TouchableOpacity 
+      onPress={() => onPress(chat)}
+      onLongPress={() => onLongPress(chat)}
+      onPressIn={() => setIsPressed(true)}
+      onPressOut={() => setIsPressed(false)}
+      style={[
+        styles.chatRowContainer,
+        isPressed && { backgroundColor: themeColors.border }
+      ]}
+    >
+      <View style={[styles.chatRow, { backgroundColor: themeColors.card }]}>
+        {/* Avatar with online status and typing indicator */}
+        <View style={styles.avatarContainer}>
+          <Image source={imageMap[chat.avatar]} style={[styles.avatar, { backgroundColor: themeColors.border }]} />
+          {chat.isOnline && <View style={styles.onlineIndicator} />}
+          {chat.isTyping && (
+            <View style={styles.typingIndicator}>
+              <Text style={styles.typingText}>typing...</Text>
             </View>
           )}
+        </View>
+        
+        {/* Chat info */}
+        <View style={styles.chatInfo}>
+          <View style={styles.chatHeader}>
+            <View style={styles.nameContainer}>
+              <Text style={[styles.chatName, { color: themeColors.text }]} numberOfLines={1}>
+                {chat.name}
+              </Text>
+              {getChatTypeIcon()}
+            </View>
+            <View style={styles.timeContainer}>
+              <Text style={[styles.chatTime, { color: chat.unread > 0 ? themeColors.accent : themeColors.textSecondary }]}>
+                {formatTime(chat.time)}
+              </Text>
+              {chat.isPinned && (
+                <Ionicons name="pin" size={12} color="#8E8E93" style={{ marginLeft: 4 }} />
+              )}
+            </View>
+          </View>
+          
+          <View style={styles.messageRow}>
+            <View style={styles.messageContainer}>
+              {chat.messageStatus !== 'received' && (
+                <View style={styles.statusContainer}>
+                  {renderMessageStatus()}
+                </View>
+              )}
+              <Text 
+                style={[
+                  styles.lastMessage, 
+                  { 
+                    color: chat.unread > 0 ? themeColors.text : themeColors.textSecondary,
+                    fontWeight: chat.unread > 0 ? '600' : '400'
+                  }
+                ]} 
+                numberOfLines={1}
+              >
+                {chat.lastMessage}
+              </Text>
+            </View>
+            
+            {/* Unread badge and mute indicator */}
+            <View style={styles.rightContainer}>
+              {chat.isMuted && (
+                <Ionicons name="volume-mute" size={16} color="#8E8E93" style={{ marginBottom: 4 }} />
+              )}
+              {chat.unread > 0 && (
+                <View style={[styles.unreadBadge, { backgroundColor: themeColors.accent }]}>
+                  <Text style={[styles.unreadText, { color: themeColors.background }]}>
+                    {chat.unread > 99 ? '99+' : chat.unread}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
   );
 };
 
-// The main Chat component brings everything together
-// It renders the header and the list of chats
+// Main Chat Screen
 const Chat = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { chats, setChats } = useChatContext();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [lastTabPath, setLastTabPath] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -173,6 +182,9 @@ const Chat = () => {
 
   const handleSearchIcon = () => setSearchOpen(true);
   const handleCancelSearch = () => { setSearchOpen(false); setSearchText(''); };
+  const handleNewChat = () => {
+    console.log('New chat pressed');
+  };
 
   const handleChatPress = (chat) => {
     // Mark as read in context
@@ -184,16 +196,25 @@ const Chat = () => {
     router.push({ pathname: '/chatDetail', params: { chat: JSON.stringify(chat) } });
   };
 
+  const handleChatLongPress = (chat) => {
+    console.log('Long press on chat:', chat.name);
+    // Show context menu for chat options
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <StatusBar barStyle={themeColors.background === '#fff' ? 'dark-content' : 'light-content'} backgroundColor={themeColors.background} />
+      <StatusBar 
+        barStyle={themeColors.background === '#fff' ? 'dark-content' : 'light-content'} 
+        backgroundColor={themeColors.background} 
+      />
+      
       {/* Search Bar */}
       {searchOpen ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 40, backgroundColor: themeColors.background, borderBottomWidth: 1, borderColor: themeColors.border }}>
-          <Ionicons name="search" size={22} color={themeColors.icon} style={{ marginRight: 8 }} />
+        <View style={[styles.searchContainer, { backgroundColor: themeColors.background, borderColor: themeColors.border }]}>
+          <Ionicons name="search" size={20} color={themeColors.icon} style={{ marginRight: 8 }} />
           <TextInput
-            style={{ flex: 1, fontSize: 18, color: themeColors.text, paddingVertical: 8 }}
-            placeholder="Search chats"
+            style={[styles.searchInput, { color: themeColors.text }]}
+            placeholder="Search or start new chat"
             placeholderTextColor={themeColors.textSecondary}
             value={searchText}
             onChangeText={setSearchText}
@@ -201,7 +222,7 @@ const Chat = () => {
           />
           {searchText.length > 0 && (
             <TouchableOpacity onPress={() => setSearchText('')} style={{ marginHorizontal: 4 }}>
-              <Ionicons name="close-circle" size={22} color={themeColors.icon} />
+              <Ionicons name="close-circle" size={20} color={themeColors.icon} />
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={handleCancelSearch} style={{ marginLeft: 8 }}>
@@ -209,81 +230,182 @@ const Chat = () => {
           </TouchableOpacity>
         </View>
       ) : null}
+      
       {/* Header */}
       {!searchOpen && (
-        <ChatHeader menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => { setLastTabPath(pathname); setProfileModalVisible(true); }} onSearchPress={handleSearchIcon} />
+        <ChatHeader 
+          onProfilePress={() => { 
+            setLastTabPath(pathname); 
+            setProfileModalVisible(true); 
+          }} 
+          onSearchPress={handleSearchIcon}
+          onNewChatPress={handleNewChat}
+        />
       )}
-      <ProfileModal visible={profileModalVisible} onClose={() => setProfileModalVisible(false)} onLogout={() => { setProfileModalVisible(false); if (lastTabPath) router.replace(lastTabPath); }} lastTabPath={lastTabPath} />
-      {/* List of chats using FlatList for performance */}
+      
+      <ProfileModal 
+        visible={profileModalVisible} 
+        onClose={() => setProfileModalVisible(false)} 
+        onLogout={() => { 
+          setProfileModalVisible(false); 
+          if (lastTabPath) router.replace(lastTabPath); 
+        }} 
+        lastTabPath={lastTabPath} 
+      />
+      
+      {/* Chat List */}
       <FlatList
         data={filteredChats}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => <ChatRow chat={item} onPress={() => handleChatPress(item)} />}
+        renderItem={({ item }) => (
+          <ChatRow 
+            chat={item} 
+            onPress={handleChatPress}
+            onLongPress={handleChatLongPress}
+          />
+        )}
         ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: themeColors.border }]} />}
         style={{ backgroundColor: themeColors.background }}
+        showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
   );
 };
 
-// All the styles for our components live here
-// This keeps our UI looking clean and consistent
+// Enhanced Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 8,
   },
   header: {
-    flexDirection: 'row', // Arrange children in a row
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 40, // Space for status bar
-    paddingBottom: 12,
+    paddingTop: 40,
+    paddingBottom: 16,
     paddingHorizontal: 16,
+    borderBottomWidth: 0.5,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
-    fontSize: 22,
-    flex: 1,
-    textAlign: 'center',
-    marginLeft: -28, // To visually center between icons
+    letterSpacing: 0.5,
   },
   headerIcons: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: 'auto',
   },
-  row: {
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    paddingBottom: 12,
+    borderBottomWidth: 0.5,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  // Chat Row
+  chatRowContainer: {
+    paddingHorizontal: 16,
+  },
+  chatRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 16,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 12,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22, // Makes the avatar round
-    marginRight: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
-  textContainer: {
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#34C759',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  typingIndicator: {
+    position: 'absolute',
+    bottom: -20,
+    left: 0,
+    backgroundColor: '#25D366',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  typingText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  chatInfo: {
     flex: 1,
     justifyContent: 'center',
   },
-  name: {
-    fontWeight: 'bold',
+  chatHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  chatName: {
+    fontWeight: '600',
     fontSize: 16,
-    marginBottom: 2,
+    marginRight: 4,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chatTime: {
+    fontSize: 12,
+    fontWeight: '400',
+  },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  messageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  statusContainer: {
+    marginRight: 4,
   },
   lastMessage: {
     fontSize: 14,
+    flex: 1,
   },
   rightContainer: {
     alignItems: 'flex-end',
-    justifyContent: 'center',
-    minWidth: 48,
-  },
-  time: {
-    fontSize: 13,
-    marginBottom: 6,
   },
   unreadBadge: {
     borderRadius: 10,
@@ -295,11 +417,12 @@ const styles = StyleSheet.create({
   },
   unreadText: {
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 12,
   },
   separator: {
-    height: 1,
-    marginLeft: 74, // Indent so it doesn't go under the avatar
+    height: 0.5,
+    marginLeft: 76,
   },
 });
-export default Chat;
+
+export default Chat; 

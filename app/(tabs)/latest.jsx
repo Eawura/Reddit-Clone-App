@@ -1,4 +1,5 @@
-import { AntDesign, Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { FlatList, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -7,9 +8,10 @@ import CommentModal from '../../components/CommentModal';
 import ImageModal from '../../components/ImageModal';
 import MoreMenu from '../../components/MoreMenu';
 import PopupMenu from '../../components/PopupMenu';
+import { usePosts } from '../../components/PostContext';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
-import { getRandomRecentTimestamp, getRelativeTime } from '../../utils/timeUtils';
+import { getRelativeTime } from '../../utils/timeUtils';
 
 // Image mapping for profile pictures and post images
 const imageMap = {
@@ -35,6 +37,15 @@ const imageMap = {
   'Logo-NBA.png': require('../../assets/images/Logo-NBA.png'),
   'daniel-radcliffes-acting-v0-zhahfgw6fj5f1.webp': require('../../assets/images/daniel-radcliffes-acting-v0-zhahfgw6fj5f1.webp'),
   'danny-1.webp': require('../../assets/images/danny-1.webp'),
+  // Post images - using existing images as placeholders until custom ones are created
+  'react-native-app.jpg': require('../../assets/images/curry.jpg'), // Placeholder
+  'cat-laser-pointer.jpg': require('../../assets/images/Penguin.jpg'), // Placeholder
+  'coffee-shop-latte.jpg': require('../../assets/images/Ramen.jpeg'), // Placeholder
+  'dream-job-offer.jpg': require('../../assets/images/M8 bmw.jpg'), // Placeholder
+  'homemade-pizza.jpg': require('../../assets/images/Ramen.jpeg'), // Placeholder
+  'midnight-library-book.jpg': require('../../assets/images/curry.jpg'), // Placeholder
+  'indoor-plant-jungle.jpg': require('../../assets/images/Penguin.jpg'), // Placeholder
+  '10k-running-achievement.jpg': require('../../assets/images/M8 bmw.jpg'), // Placeholder
   // Commenter profile images
   'commenter1.jpg': require('../../assets/images/Commenter1.jpg'),
   'commenter2.jpg': require('../../assets/images/Commenter2.jpg'),
@@ -52,7 +63,7 @@ const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
     const router = useRouter();
     const { themeColors } = useTheme();
     return (
-        <View style={[styles.header, { backgroundColor: themeColors.background }] }>
+        <View style={[styles.header, { backgroundColor: themeColors.background, borderColor: themeColors.border }] }>
             <View style={styles.headerLeft}>
                 {/* Remove menu icon */}
                 {/* <TouchableOpacity>
@@ -81,7 +92,7 @@ const SortButton = ({ title, active, onPress }) => {
     <TouchableOpacity 
         style={[
           styles.sortButton, 
-          { backgroundColor: themeColors.card },
+          { backgroundColor: themeColors.card, borderColor: themeColors.border },
           active && { backgroundColor: themeColors.accent }
         ]} 
         onPress={onPress}
@@ -95,17 +106,28 @@ const SortButton = ({ title, active, onPress }) => {
   );
 };
 
-const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAward, onShare, themeColors, onMore, isBookmarked }) => (
-    <View style={[styles.postContainer, { backgroundColor: themeColors.card }]}>
+// Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)
+const formatCount = (num) => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return num;
+};
+
+const Post = ({ post, onUpvote, onDownvote, onComment, onImagePress, onSave, onAward, onShare, themeColors, onMore, isBookmarked, DEFAULT_COLLECTION, onProfilePress }) => (
+    <View style={[styles.postContainer, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
       {/* Post Header */}
       <View style={styles.postHeader}>
-        <View style={styles.userInfo}>
-          <Image source={imageMap[post.avatar]} style={styles.avatar} />
+        <TouchableOpacity style={styles.userInfo} onPress={() => onProfilePress(post)}>
+          <Image source={imageMap[post.avatar] ? imageMap[post.avatar] : require('../../assets/images/Commenter1.jpg')} style={styles.avatar} />
           <View style={styles.userDetails}>
-            <Text style={[styles.username, { color: themeColors.text }]}>{post.user}</Text>
+            <Text style={[styles.username, { color: themeColors.text }]}>{post.user || post.author}</Text>
             <Text style={[styles.postTime, { color: themeColors.textSecondary }]}>{getRelativeTime(post.timestamp)}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.moreButton} onPress={() => onMore(post)}>
           <Feather name="more-horizontal" size={20} color={themeColors.textSecondary} />
         </TouchableOpacity>
@@ -117,9 +139,10 @@ const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAwar
         {post.image && (
           <TouchableOpacity onPress={() => onImagePress(post.image)}>
             <Image 
-              source={imageMap[post.image]} 
+              source={post.image.startsWith('http') ? { uri: post.image } : imageMap[post.image]} 
               style={styles.postImage}
               resizeMode="cover"
+              defaultSource={require('../../assets/images/Random.jpg')}
             />
           </TouchableOpacity>
         )}
@@ -128,51 +151,39 @@ const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAwar
       {/* Post Actions */}
       <View style={styles.postActions}>
         <View style={styles.actionGroup}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => onLike(post.id)}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => onUpvote(post.id)}>
             <AntDesign 
-              name={post.liked ? 'heart' : 'hearto'} 
-              size={22} 
-              color={post.liked ? '#e74c3c' : themeColors.textSecondary} 
+              name="arrowup"
+              size={22}
+              color={post.upvoted ? '#2E45A3' : themeColors.textSecondary}
             />
-            <Text style={[styles.actionText, { color: post.liked ? '#e74c3c' : themeColors.textSecondary }]}>
-              {post.likes}
+            <Text style={[styles.actionText, { color: post.upvoted ? '#2E45A3' : themeColors.textSecondary }]}> 
+              {formatCount(post.upvotes)}
             </Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.actionButton} onPress={() => onDislike(post.id)}>
-            <View style={{ position: 'relative' }}>
-              <MaterialIcons 
-                name="heart-broken" 
-                size={24} 
-                color={themeColors.textSecondary} 
-                style={{ opacity: 0.3 }}
-              />
-              {post.disliked && (
-                <MaterialIcons 
-                  name="heart-broken" 
-                  size={24} 
-                  color="#e74c3c" 
-                  style={{ position: 'absolute', top: 0, left: 0 }}
-                />
-              )}
-            </View>
+          <TouchableOpacity style={styles.actionButton} onPress={() => onDownvote(post.id)}>
+            <AntDesign
+              name="arrowdown"
+              size={22}
+              color={post.downvoted ? '#E74C3C' : themeColors.textSecondary}
+            />
           </TouchableOpacity>
-          
           <TouchableOpacity style={styles.actionButton} onPress={() => onComment(post.id)}>
             <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
-            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{post.comments}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => onShare(post.id)}>
-            <Feather name="share-2" size={20} color={themeColors.textSecondary} />
+            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatCount(post.comments)}</Text>
           </TouchableOpacity>
         </View>
-        
         <View style={styles.actionGroup}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => onAward(post.id)}>
-            <MaterialIcons name={post.awarded ? 'emoji-events' : 'emoji-events'} size={22} color={post.awarded ? '#FFD700' : themeColors.textSecondary} />
+          <TouchableOpacity style={styles.actionButton} onPress={() => onShare(post.id)}>
+            <Feather name="share-2" size={20} color={themeColors.textSecondary} />
+            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatCount(post.shares)}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.saveButton} onPress={() => onSave(post.id)}>
-            <Feather name={isBookmarked(post.id) ? 'bookmark' : 'bookmark'} size={20} color={isBookmarked(post.id) ? '#2E45A3' : themeColors.textSecondary} />
+            {isBookmarked(post.id, DEFAULT_COLLECTION) ? (
+              <FontAwesome name="bookmark" size={20} color={themeColors.accent} />
+            ) : (
+              <Feather name="bookmark" size={20} color={themeColors.textSecondary} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -225,128 +236,18 @@ const Latest = () => {
     const { bookmarks, toggleBookmark, isBookmarked, collections, DEFAULT_COLLECTION } = useBookmarks();
     const [moreMenuVisible, setMoreMenuVisible] = useState(false);
     const [selectedMorePost, setSelectedMorePost] = useState(null);
+    const { posts } = usePosts();
 
     const sortOptions = ['New', 'Hot', 'Top', 'Rising'];
 
-    const latestData = [
-        {
-            id: '1',
-            title: 'Just finished building my first React Native app! Here\'s what I learned',
-            content: 'After 3 months of learning and building, I finally completed my first mobile app. The journey was incredible and I wanted to share some key insights...',
-            subreddit: 'reactnative',
-            author: 'dev_newbie',
-            time: '5m',
-            upvotes: 23,
-            comments: 8,
-            upvoted: false,
-            downvoted: false,
-            image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400'
-        },
-        {
-            id: '2',
-            title: 'My cat just discovered the laser pointer for the first time',
-            content: 'The pure joy and confusion on his face was priceless. I think I\'ve created a monster though - he won\'t stop looking for the red dot everywhere!',
-            subreddit: 'aww',
-            author: 'catlover42',
-            time: '12m',
-            upvotes: 156,
-            comments: 23,
-            upvoted: false,
-            downvoted: false,
-            image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400'
-        },
-        {
-            id: '3',
-            title: 'Found this amazing coffee shop in downtown. Best latte I\'ve ever had!',
-            content: 'Hidden gem alert! This place has the most incredible coffee and the atmosphere is perfect for working. Highly recommend checking it out.',
-            subreddit: 'coffee',
-            author: 'coffee_enthusiast',
-            time: '18m',
-            upvotes: 89,
-            comments: 15,
-            upvoted: false,
-            downvoted: false,
-            image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400'
-        },
-        {
-            id: '4',
-            title: 'Just got my dream job offer! After 6 months of job hunting',
-            content: 'I can\'t believe it finally happened! The interview process was intense but totally worth it. For anyone struggling with job search - keep going!',
-            subreddit: 'jobs',
-            author: 'jobseeker2024',
-            time: '25m',
-            upvotes: 234,
-            comments: 67,
-            upvoted: false,
-            downvoted: false,
-            image: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=400'
-        },
-        {
-            id: '5',
-            title: 'My homemade pizza turned out perfect tonight',
-            content: 'Been practicing my pizza-making skills for months. Tonight everything came together - perfect crust, sauce, and toppings. So satisfying!',
-            subreddit: 'food',
-            author: 'pizzamaster',
-            time: '32m',
-            upvotes: 445,
-            comments: 89,
-            upvoted: false,
-            downvoted: false,
-            image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400'
-        },
-        {
-            id: '6',
-            title: 'Just finished reading "The Midnight Library" - absolutely mind-blowing',
-            content: 'This book completely changed my perspective on life choices and regrets. Has anyone else read it? I need to discuss the ending!',
-            subreddit: 'books',
-            author: 'bookworm_reader',
-            time: '41m',
-            upvotes: 78,
-            comments: 34,
-            upvoted: false,
-            downvoted: false,
-            image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400'
-        },
-        {
-            id: '7',
-            title: 'My plant collection is finally complete! Here\'s my indoor jungle',
-            content: 'After months of collecting and caring for these beauties, I think I\'ve reached the perfect balance. Each one has its own personality!',
-            subreddit: 'houseplants',
-            author: 'plant_parent',
-            time: '48m',
-            upvotes: 567,
-            comments: 123,
-            upvoted: false,
-            downvoted: false,
-            image: 'https://images.unsplash.com/photo-1466781783364-36c955e42a7f?w=400'
-        },
-        {
-            id: '8',
-            title: 'Just completed my first 10K run! Never thought I could do it',
-            content: 'Started running 6 months ago and today I finally hit this milestone. The feeling of accomplishment is incredible. Next goal: half marathon!',
-            subreddit: 'running',
-            author: 'runner_in_progress',
-            time: '55m',
-            upvotes: 189,
-            comments: 45,
-            upvoted: false,
-            downvoted: false,
-            image: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400'
-        }
-    ];
-
-    const [posts, setPosts] = useState(
-      latestData.map(p => ({
-        ...p,
-        liked: false,
-        disliked: false,
-        awarded: false,
-        timestamp: getRandomRecentTimestamp(),
-      }))
-    );
+    // Filter and sort posts for Latest feed
+    const now = Date.now();
+    const filteredPosts = posts
+      .filter(post => now - new Date(post.timestamp).getTime() < 24 * 60 * 60 * 1000)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     const handleUpvote = (id) => {
-        setPosts(posts => posts.map(post => {
+        setFilteredPosts(posts => posts.map(post => {
             if (post.id === id) {
                 return { 
                     ...post, 
@@ -360,7 +261,7 @@ const Latest = () => {
     };
 
     const handleDownvote = (id) => {
-        setPosts(posts => posts.map(post => {
+        setFilteredPosts(posts => posts.map(post => {
             if (post.id === id) {
                 if (post.downvoted) {
                     return { ...post, downvoted: false };
@@ -378,7 +279,7 @@ const Latest = () => {
     };
 
     const handleComment = (id) => {
-      const post = posts.find(p => p.id === id);
+      const post = filteredPosts.find(p => p.id === id);
       setSelectedPost(post);
       setCommentModalVisible(true);
     };
@@ -396,7 +297,7 @@ const Latest = () => {
       setComments(prev => [newComment, ...prev]);
       
       // Update post comment count
-      setPosts(posts => posts.map(post => {
+      setFilteredPosts(posts => posts.map(post => {
         if (post.id === selectedPost.id) {
           return { ...post, comments: post.comments + 1 };
         }
@@ -418,15 +319,6 @@ const Latest = () => {
     };
 
     // Filter posts by search text
-    const filteredPosts = searchText.trim() === '' ? posts : posts.filter(post => {
-      const q = searchText.toLowerCase();
-      return (
-        post.title.toLowerCase().includes(q) ||
-        post.author.toLowerCase().includes(q) ||
-        (post.content && post.content.toLowerCase().includes(q))
-      );
-    });
-
     const handleSearchIcon = () => setSearchOpen(true);
     const handleCancelSearch = () => { setSearchOpen(false); setSearchText(''); };
 
@@ -437,7 +329,7 @@ const Latest = () => {
     };
 
     const handleSave = (id) => {
-      const post = posts.find(p => p.id === id);
+      const post = filteredPosts.find(p => p.id === id);
       if (post) {
         toggleBookmark({
           id: post.id,
@@ -449,7 +341,7 @@ const Latest = () => {
     };
 
     const handleAward = (id) => {
-      setPosts(posts => posts.map(post => post.id === id ? { ...post, awarded: !post.awarded } : post));
+      setFilteredPosts(posts => posts.map(post => post.id === id ? { ...post, awarded: !post.awarded } : post));
     };
 
     const handleShare = (id) => {
@@ -462,8 +354,19 @@ const Latest = () => {
       setMoreMenuVisible(true);
     };
 
+    const handleProfilePress = (post) => {
+      const userPosts = filteredPosts.filter(p => (p.user || p.author) === (post.user || post.author));
+      router.navigate('profile', {
+        user: {
+          avatar: post.avatar,
+          user: post.user || post.author,
+          posts: userPosts,
+        }
+      });
+    };
+
     return (
-        <View style={[styles.container, { backgroundColor: themeColors.background }] }>
+        <View style={[styles.container, { backgroundColor: themeColors.background, borderColor: themeColors.border }] }>
             <Stack.Screen options={{ headerShown: false }} />
             {/* Search Bar */}
             {searchOpen ? (
@@ -519,7 +422,7 @@ const Latest = () => {
               themeColors={themeColors}
             />
             
-            <View style={[styles.sortContainer, { backgroundColor: themeColors.background, borderBottomColor: themeColors.border }]}>
+            <View style={[styles.sortContainer, { backgroundColor: themeColors.background, borderColor: themeColors.border }]}>
                 <FlatList
                     horizontal
                     data={sortOptions}
@@ -541,9 +444,9 @@ const Latest = () => {
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <Post 
-                        post={{...item, saved: isBookmarked(item.id, DEFAULT_COLLECTION)}}
-                        onLike={handleUpvote} 
-                        onDislike={handleDownvote}
+                        post={item}
+                        onUpvote={handleUpvote} 
+                        onDownvote={handleDownvote}
                         onComment={handleComment}
                         onImagePress={handleImagePress}
                         onSave={handleSave}
@@ -552,6 +455,8 @@ const Latest = () => {
                         onMore={handleMorePress}
                         themeColors={themeColors}
                         isBookmarked={isBookmarked}
+                        DEFAULT_COLLECTION={DEFAULT_COLLECTION}
+                        onProfilePress={handleProfilePress}
                     />
                 )}
                 ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -629,18 +534,18 @@ const styles = StyleSheet.create({
         padding: 8,
     },
     postContainer: {
-        marginBottom: 12,
-        borderRadius: 16,
-        marginHorizontal: 12,
-        padding: 16,
+        marginBottom: 10,
+        borderRadius: 8,
+        marginHorizontal: 8,
+        padding: 12,
         ...Platform.select({
             web: {
-                boxShadow: '0px 1px 3px rgba(0,0,0,0.1)',
+                boxShadow: '0px 2px 8px rgba(0,0,0,0.06)',
             },
             default: {
                 shadowColor: '#000',
-                shadowOpacity: 0.1,
-                shadowRadius: 3,
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
                 elevation: 2,
             },
         }),
@@ -649,7 +554,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     userInfo: {
         flexDirection: 'row',
@@ -657,10 +562,10 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     avatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        marginRight: 12,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        marginRight: 8,
     },
     userDetails: {
         flex: 1,
@@ -678,32 +583,21 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     postContent: {
-        marginBottom: 16,
+        marginBottom: 8,
     },
     postTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        lineHeight: 24,
-        marginBottom: 12,
+        fontSize: 15,
+        fontWeight: '500',
+        lineHeight: 20,
+        marginBottom: 8,
     },
     postImage: {
         width: '100%',
-        height: 300,
-        borderRadius: 12,
-        marginTop: 8,
-        marginBottom: 4,
-        ...Platform.select({
-            web: {
-                boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
-            },
-            default: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                elevation: 4,
-            },
-        }),
+        height: 180,
+        borderRadius: 8,
+        marginTop: 6,
+        marginBottom: 2,
+        backgroundColor: '#f0f0f0',
     },
     postActions: {
         flexDirection: 'row',
@@ -719,14 +613,14 @@ const styles = StyleSheet.create({
     actionButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 20,
-        paddingVertical: 4,
-        paddingHorizontal: 8,
+        marginRight: 12,
+        paddingVertical: 2,
+        paddingHorizontal: 4,
         borderRadius: 4,
     },
     actionText: {
-        marginLeft: 6,
-        fontSize: 14,
+        marginLeft: 4,
+        fontSize: 13,
         fontWeight: '500',
     },
     saveButton: {
