@@ -16,4 +16,6 @@ public class CommentDto {
     private long userId;
     private String userName;
     private LocalDateTime createdAt;
+    private Long parentCommentId; // nullable
+
 }

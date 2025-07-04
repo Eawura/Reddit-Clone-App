@@ -16,4 +16,8 @@ public class PostResponse {
     private String username;
     private Long voteCount;
     private Instant createdDate;
+    // new fields
+    private Integer commentCount;
+    private String duration;
+
 }

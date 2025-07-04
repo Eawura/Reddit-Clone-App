@@ -21,6 +21,7 @@ import lombok.AllArgsConstructor;
 @RestController
 @RequestMapping("/api/posts")
 @AllArgsConstructor
+@org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
 public class PostController {
 
     private final PostService postService;

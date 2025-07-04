@@ -1,5 +1,14 @@
 package com.neoping.backend.service;
 
+
+import java.io.IOException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.sql.Date;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -14,30 +23,53 @@ import org.springframework.stereotype.Service;
 
 import com.neoping.backend.dto.AuthenticationResponse;
 import com.neoping.backend.dto.LoginRequest;
+import com.neoping.backend.dto.RefreshTokenRequest;
 import com.neoping.backend.dto.RegisterRequest;
 import com.neoping.backend.exception.SpringRedditException;
 import com.neoping.backend.model.NotBlank;
 import com.neoping.backend.model.NotificationEmail;
+import com.neoping.backend.model.RefreshToken;
 import com.neoping.backend.model.User;
 import com.neoping.backend.model.VerificationToken;
 import com.neoping.backend.repository.UserRepository;
 import com.neoping.backend.repository.VerificationTokenRepository;
 import com.neoping.backend.security.JwtProvider;
 
+import io.jsonwebtoken.Jwts;
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
 
 @Service
-@AllArgsConstructor
+
 public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
+    private static final String KEYSTORE_PATH = "keystore.jks";
+    private static final String KEYSTORE_PASSWORD = "springblog";
+    private static final String KEY_ALIAS = "springblog";
+    private static final String KEY_PASSWORD = "secret";
+    private static final String KEYSTORE_TYPE = "JKS";
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final VerificationTokenRepository verificationTokenRepository;
     private final MailService mailService;
     private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
+    private final RefreshTokenService refreshTokenService;
+    private KeyStore keyStore;
+
+    public AuthService(PasswordEncoder passwordEncoder, UserRepository userRepository,
+            VerificationTokenRepository verificationTokenRepository, MailService mailService,
+            AuthenticationManager authenticationManager, JwtProvider jwtProvider,
+            RefreshTokenService refreshTokenService) {
+        this.passwordEncoder = passwordEncoder;
+        this.userRepository = userRepository;
+        this.verificationTokenRepository = verificationTokenRepository;
+        this.mailService = mailService;
+        this.authenticationManager = authenticationManager;
+        this.jwtProvider = jwtProvider;
+        this.refreshTokenService = refreshTokenService;
+        initializeKeyStore();
+    }
 
     @Transactional
     public void signup(RegisterRequest registerRequest) {
@@ -83,11 +115,48 @@ public class AuthService {
             AuthenticationResponse response = new AuthenticationResponse();
             response.setToken(token);
             response.setUsername(loginRequest.getUsername());
-            logger.info("Returning authentication response for user: {}", loginRequest.getUsername());
-            return response;
+            response.setExpiresAt(Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis()));
+            // Generate and store refresh token in DB
+RefreshToken refreshToken = refreshTokenService.generateRefreshToken();
+response.setRefreshToken(refreshToken.getTokenValue());
+logger.info("[LOGIN] Issued refresh token: {} for user: {}", refreshToken.getTokenValue(), loginRequest.getUsername());
+logger.info("Returning authentication response for user: {}", loginRequest.getUsername());
+return response;
         } catch (Exception e) {
             logger.error("Authentication failed for user: {}", loginRequest.getUsername(), e);
             throw new SpringRedditException("Authentication failed: " + e.getMessage(), e);
+        }
+    }
+
+    public AuthenticationResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
+        String refreshToken = refreshTokenRequest.getRefreshToken();
+logger.info("[REFRESH] Received refresh token: {} for username: {}", refreshToken, refreshTokenRequest.getUsername());
+String username = refreshTokenRequest.getUsername();
+        try {
+    // Only validate the refresh token using the database (UUID-based)
+    refreshTokenService.validateRefreshToken(refreshToken);
+
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new SpringRedditException("User not found with username: " + username));
+
+    Authentication authenticate = new UsernamePasswordAuthenticationToken(
+            user.getUsername(),
+            user.getPassword());
+
+    SecurityContextHolder.getContext().setAuthentication(authenticate);
+    String token = jwtProvider.generateToken(authenticate);
+
+    AuthenticationResponse response = new AuthenticationResponse();
+    response.setToken(token);
+    response.setUsername(username);
+    response.setExpiresAt(Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis()));
+    response.setRefreshToken(refreshToken);
+
+    return response;
+        } catch (com.neoping.backend.exception.RefreshTokenExpiredException | com.neoping.backend.exception.SpringRedditException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Unexpected error: " + e.getMessage(), e);
         }
     }
 
@@ -98,6 +167,29 @@ public class AuthService {
         String username = authentication.getName();
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new SpringRedditException("User not found with username: " + username));
+    }
+
+    public String generateRefreshTokenwithUserName(String username) {
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis())))
+                .signWith(getPrivateKey())
+                .compact();
+    }
+
+    private void initializeKeyStore() {
+        try {
+            keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
+            try (java.io.InputStream is = getClass().getClassLoader().getResourceAsStream(KEYSTORE_PATH)) {
+                if (is == null) {
+                    throw new SpringRedditException("Keystore file not found in resources");
+                }
+                keyStore.load(is, KEYSTORE_PASSWORD.toCharArray());
+            }
+        } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
+            throw new SpringRedditException("Failed to initialize keystore", e);
+        }
     }
 
     private String generateVerificationToken(User user) {
@@ -118,6 +210,14 @@ public class AuthService {
 
         user.setEnabled(true);
 
+    }
+
+    private PrivateKey getPrivateKey() {
+        try {
+            return (PrivateKey) keyStore.getKey(KEY_ALIAS, KEY_PASSWORD.toCharArray());
+        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
+            throw new SpringRedditException("Exception occurred while retrieving private key from keystore", e);
+        }
     }
 
 }

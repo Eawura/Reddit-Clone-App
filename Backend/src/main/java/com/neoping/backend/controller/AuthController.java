@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.neoping.backend.dto.AuthenticationResponse;
 import com.neoping.backend.dto.LoginRequest;
+import com.neoping.backend.dto.RefreshTokenRequest;
 import com.neoping.backend.dto.RegisterRequest;
 import com.neoping.backend.service.AuthService;
+import com.neoping.backend.service.RefreshTokenService;
+import com.neoping.backend.service.UserService;
 
 import lombok.AllArgsConstructor;
 
@@ -25,6 +28,8 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
+    private final UserService userService;
+    private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/signup")
     public ResponseEntity<String> signup(@RequestBody RegisterRequest registerRequest) {
@@ -45,6 +50,42 @@ public class AuthController {
         logger.info("Login successful for user: {}", loginRequest.getUsername());
         logger.info("Response body: {}", response);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh/token")
+    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+        try {
+            AuthenticationResponse response = authService.refreshToken(refreshTokenRequest);
+            logger.info("Refresh token successful for user: {}", refreshTokenRequest.getUsername());
+            logger.info("Response body: {}", response);
+            return ResponseEntity.ok(response);
+        } catch (com.neoping.backend.exception.RefreshTokenExpiredException e) {
+            logger.warn("Refresh token expired for user: {}", refreshTokenRequest.getUsername());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(java.util.Map.of(
+                    "timestamp", System.currentTimeMillis(),
+                    "status", HttpStatus.UNAUTHORIZED.value(),
+                    "error", "Unauthorized",
+                    "message", e.getMessage(),
+                    "path", "/api/auth/refresh/token"
+                ));
+        } catch (com.neoping.backend.exception.SpringRedditException e) {
+            logger.info("Refresh token deleted for user: {}", refreshTokenRequest.getUsername());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(java.util.Map.of(
+                    "timestamp", System.currentTimeMillis(),
+                    "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "error", "Internal Server Error",
+                    "message", e.getMessage(),
+                    "path", "/api/auth/refresh/token"
+                ));
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+        refreshTokenService.deleteRefreshToken(refreshTokenRequest.getRefreshToken());
+        return ResponseEntity.ok("Logout successful");
     }
 
 }

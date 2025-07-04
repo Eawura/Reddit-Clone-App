@@ -11,7 +11,17 @@ import java.util.List;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
+
+    // Fetch all comments for a post (optional: fetch only top-level)
     List<Comment> findByPost(Post post);
 
+    // Fetch only top-level comments (parentComment IS NULL)
+    List<Comment> findByPostAndParentCommentIsNull(Post post);
+
+    // Fetch replies for a given parent comment
+    List<Comment> findByParentComment(Comment parentComment);
+
     List<Comment> findAllByUser(User user);
+
+    Long countByPost(Post post);
 }
