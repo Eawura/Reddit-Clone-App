@@ -1,15 +1,17 @@
-import { AntDesign, Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Stack, usePathname, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useBookmarks } from '../../components/BookmarkContext';
 import CollectionModal from '../../components/CollectionModal';
 import ImageModal from '../../components/ImageModal';
 import MoreMenu from '../../components/MoreMenu';
 import PopupMenu from '../../components/PopupMenu';
+import { usePosts } from '../../components/PostContext';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
-import { getRandomRecentTimestamp, getRelativeTime } from '../../utils/timeUtils';
+import { getRelativeTime } from '../../utils/timeUtils';
 import data from './data.json';
 
 // Image mapping for profile pictures and post images
@@ -53,7 +55,7 @@ const imageMap = {
 const Comment = ({ comment, onLike, onReply, themeColors }) => (
   <View style={[styles.commentContainer, { borderBottomColor: themeColors.border }]}>
     <View style={styles.commentHeader}>
-      <Image source={imageMap[comment.avatar] ? imageMap[comment.avatar] : { uri: comment.avatar }} style={styles.commentAvatar} />
+      <Image source={imageMap[comment.avatar] ? imageMap[comment.avatar] : require('../../assets/images/Commenter1.jpg')} style={styles.commentAvatar} />
       <View style={styles.commentInfo}>
         <Text style={[styles.commentUsername, { color: themeColors.text }]}>{comment.username}</Text>
         <Text style={[styles.commentTime, { color: themeColors.textSecondary }]}>{getRelativeTime(comment.timestamp)}</Text>
@@ -112,7 +114,7 @@ const CommentModal = ({ visible, onClose, post, comments, onAddComment, onLikeCo
             {/* Post Preview */}
             <View style={[styles.postPreview, { borderBottomColor: themeColors.border }]}>
               <View style={styles.postPreviewHeader}>
-                <Image source={imageMap[post.avatar] ? imageMap[post.avatar] : { uri: post.avatar }} style={styles.postPreviewAvatar} />
+                <Image source={imageMap[post.avatar] ? imageMap[post.avatar] : require('../../assets/images/Commenter1.jpg')} style={styles.postPreviewAvatar} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.postPreviewUser, { color: themeColors.text }]}>{post.user}</Text>
                   <Text style={[styles.postPreviewTitle, { color: themeColors.text }]}>{post.title}</Text>
@@ -181,95 +183,88 @@ const CommentModal = ({ visible, onClose, post, comments, onAddComment, onLikeCo
   );
 };
 
-const Post = ({ post, onLike, onDislike, onComment, onShare, onImagePress, onSave, onAward, themeColors, onMore, isBookmarked, DEFAULT_COLLECTION }) => (
-  <View style={[styles.postContainer, { backgroundColor: themeColors.card }]}>
-    {/* Post Header */}
-    <View style={styles.postHeader}>
-      <View style={styles.userInfo}>
-        <Image source={imageMap[post.avatar] ? imageMap[post.avatar] : { uri: post.avatar }} style={styles.avatar} />
-        <View style={styles.userDetails}>
-          <Text style={[styles.username, { color: themeColors.text }]}>{post.user}</Text>
-          <Text style={[styles.postTime, { color: themeColors.textSecondary }]}>{getRelativeTime(post.timestamp)}</Text>
-        </View>
-      </View>
-      <TouchableOpacity style={styles.moreButton} onPress={() => onMore(post)}>
-        <Feather name="more-horizontal" size={20} color={themeColors.textSecondary} />
-      </TouchableOpacity>
-    </View>
+const Post = ({ post, onLike, onDislike, onComment, onShare, onImagePress, onSave, onAward, themeColors, onMore, isBookmarked, DEFAULT_COLLECTION, onProfilePress }) => {
+  // Double-tap logic using ref
+  const lastTap = useRef(null);
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    if (lastTap.current && (now - lastTap.current) < 300) {
+      onLike(post.id);
+    }
+    lastTap.current = now;
+  };
 
-    {/* Post Content */}
-    <View style={styles.postContent}>
-      <Text style={[styles.postTitle, { color: themeColors.text }]}>{post.title}</Text>
-      {post.image && (
-        <TouchableOpacity onPress={() => onImagePress(post.image)}>
-          <Image 
-            source={imageMap[post.image] ? imageMap[post.image] : { uri: post.image }} 
-            style={styles.postImage}
-            resizeMode="cover"
-          />
-        </TouchableOpacity>
-      )}
-    </View>
-
-    {/* Post Actions */}
-    <View style={styles.postActions}>
-      <View style={styles.actionGroup}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => onLike(post.id)}>
-          <AntDesign 
-            name={post.liked ? 'heart' : 'hearto'} 
-            size={22} 
-            color={post.liked ? '#e74c3c' : themeColors.textSecondary} 
-          />
-          <Text style={[styles.actionText, { color: post.liked ? '#e74c3c' : themeColors.textSecondary }]}>
-            {post.likes}
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.actionButton} onPress={() => onDislike(post.id)}>
-          <View style={{ position: 'relative' }}>
-            <MaterialIcons 
-              name="heart-broken" 
-              size={24} 
-              color={themeColors.textSecondary} 
-              style={{ opacity: 0.3 }}
-            />
-            {post.disliked && (
-              <MaterialIcons 
-                name="heart-broken" 
-                size={24} 
-                color="#e74c3c" 
-                style={{ position: 'absolute', top: 0, left: 0 }}
-              />
-            )}
+  return (
+    <View style={[styles.postContainer, { backgroundColor: themeColors.card }]}>
+      {/* Post Header */}
+      <View style={styles.postHeader}>
+        <TouchableOpacity style={styles.userInfo} onPress={() => onProfilePress(post)}>
+          <Image source={imageMap[post.avatar] ? imageMap[post.avatar] : require('../../assets/images/Commenter1.jpg')} style={styles.avatar} />
+          <View style={styles.userDetails}>
+            <Text style={[styles.username, { color: themeColors.text }]}>{post.user}</Text>
+            <Text style={[styles.postTime, { color: themeColors.textSecondary }]}>{getRelativeTime(post.timestamp)}</Text>
           </View>
         </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.actionButton} onPress={() => onComment(post.id)}>
-          <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
-          <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{post.comments}</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.actionButton} onPress={() => onShare(post.id)}>
-          <Feather name="share-2" size={20} color={themeColors.textSecondary} />
-          <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{post.shares}</Text>
+        <TouchableOpacity style={styles.moreButton} onPress={() => onMore(post)}>
+          <Feather name="more-horizontal" size={20} color={themeColors.textSecondary} />
         </TouchableOpacity>
       </View>
-      
-      <View style={styles.actionGroup}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => onAward(post.id)}>
-          <MaterialIcons name={post.awarded ? 'emoji-events' : 'emoji-events'} size={22} color={post.awarded ? '#FFD700' : themeColors.textSecondary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={() => onSave(post.id)}
-          onLongPress={() => handleBookmarkLongPress(post.id)}
-        >
-          <Feather name={isBookmarked(post.id, DEFAULT_COLLECTION) ? 'bookmark' : 'bookmark'} size={20} color={isBookmarked(post.id, DEFAULT_COLLECTION) ? '#2E45A3' : themeColors.textSecondary} />
-        </TouchableOpacity>
+
+      {/* Post Content with double-tap to like, but NOT profile navigation */}
+      <Pressable onPress={handleDoubleTap}>
+        <View style={styles.postContent}>
+          <Text style={[styles.postTitle, { color: themeColors.text }]}>{post.title}</Text>
+          {post.image && (
+            <TouchableOpacity onPress={() => onImagePress(post.image)}>
+              <Image 
+                source={imageMap[post.image] ? imageMap[post.image] : { uri: post.image }} 
+                style={styles.postImage}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      </Pressable>
+
+      {/* Post Actions */}
+      <View style={styles.postActions}>
+        <View style={styles.actionGroup}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => onLike(post.id)}>
+            <AntDesign 
+              name={post.liked ? 'heart' : 'hearto'} 
+              size={22} 
+              color={post.liked ? '#e74c3c' : themeColors.textSecondary} 
+            />
+            <Text style={[styles.actionText, { color: post.liked ? '#e74c3c' : themeColors.textSecondary }]}> 
+              {formatCount(post.likes)}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => onComment(post.id)}>
+            <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
+            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatCount(post.comments)}</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.actionGroup}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => onShare(post.id)}>
+            <Feather name="share-2" size={20} color={themeColors.textSecondary} />
+            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatCount(post.shares)}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={() => onSave(post.id)}
+            onLongPress={() => handleBookmarkLongPress(post.id)}
+          >
+            {isBookmarked(post.id, DEFAULT_COLLECTION) ? (
+              <FontAwesome name="bookmark" size={20} color={themeColors.accent} />
+            ) : (
+              <Feather name="bookmark" size={20} color={themeColors.textSecondary} />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
-  </View>
-);
+  );
+};
 
 const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
   const router = useRouter();
@@ -294,16 +289,19 @@ const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
   );
 };
 
+// Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)
+const formatCount = (num) => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return num;
+};
+
 const index = () => {
-  const [posts, setPosts] = useState(
-    data.posts.map(p => ({
-      ...p,
-      liked: false,
-      disliked: false,
-      awarded: false,
-      timestamp: getRandomRecentTimestamp(),
-    }))
-  );
+  const { posts, addPost } = usePosts();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -364,18 +362,20 @@ const index = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter posts by search text
-  const filteredPosts = searchText.trim() === '' ? posts : posts.filter(post => {
-    const q = searchText.toLowerCase();
-    return (
-      post.title.toLowerCase().includes(q) ||
-      post.user.toLowerCase().includes(q) ||
-      (post.content && post.content.toLowerCase().includes(q))
-    );
-  });
+  // Filter and sort posts for Home feed
+  const filteredPosts = posts
+    .filter(post => {
+      const q = searchText.toLowerCase();
+      return (
+        post.title.toLowerCase().includes(q) ||
+        (post.content && post.content.toLowerCase().includes(q)) ||
+        (post.user && post.user.toLowerCase().includes(q))
+      );
+    })
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   const handleLike = (id) => {
-    setPosts(posts => posts.map(post => {
+    addPost(posts => posts.map(post => {
       if (post.id === id) {
         if (post.liked) {
           return { ...post, liked: false, likes: post.likes - 1 };
@@ -388,7 +388,7 @@ const index = () => {
   };
 
   const handleDislike = (id) => {
-    setPosts(posts => posts.map(post => {
+    addPost(posts => posts.map(post => {
       if (post.id === id) {
         if (post.disliked) {
           return { ...post, disliked: false };
@@ -420,7 +420,7 @@ const index = () => {
     setComments(prev => [newComment, ...prev]);
     
     // Update post comment count
-    setPosts(posts => posts.map(post => {
+    addPost(posts => posts.map(post => {
       if (post.id === selectedPost.id) {
         return { ...post, comments: post.comments + 1 };
       }
@@ -429,7 +429,7 @@ const index = () => {
   };
 
   const handleLikeComment = (commentId) => {
-    setComments(comments => comments.map(comment => {
+    addComments(comments => comments.map(comment => {
       if (comment.id === commentId) {
         if (comment.liked) {
           return { ...comment, liked: false, likes: comment.likes - 1 };
@@ -493,7 +493,7 @@ const index = () => {
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => {
-      setPosts(data.posts.map(p => ({ ...p, liked: false, disliked: false, saved: false, awarded: false })));
+      addPost(data.posts.map(p => ({ ...p, liked: false, disliked: false, saved: false, awarded: false })));
       setRefreshing(false);
     }, 1200);
   };
@@ -514,7 +514,7 @@ const index = () => {
   };
 
   const handleAward = (id) => {
-    setPosts(posts => posts.map(post => post.id === id ? { ...post, awarded: !post.awarded } : post));
+    addPost(posts => posts.map(post => post.id === id ? { ...post, awarded: !post.awarded } : post));
   };
 
   const handleMorePress = (post) => {
@@ -528,6 +528,17 @@ const index = () => {
       setCollectionModalPost(post);
       setCollectionModalVisible(true);
     }
+  };
+
+  const handleProfilePress = (post) => {
+    const userPosts = posts.filter(p => p.user === post.user);
+    router.navigate('profile', {
+      user: {
+        avatar: post.avatar,
+        user: post.user,
+        posts: userPosts,
+      }
+    });
   };
 
   if (loading) {
@@ -631,7 +642,7 @@ const index = () => {
         <FlatList
           data={filteredPosts}
           keyExtractor={item => item.id}
-          renderItem={({ item }) => <Post post={{...item, saved: isBookmarked(item.id)}} onLike={handleLike} onDislike={handleDislike} onComment={handleComment} onShare={handleShare} onImagePress={handleImagePress} onSave={handleSave} onAward={handleAward} themeColors={themeColors} onMore={handleMorePress} isBookmarked={isBookmarked} DEFAULT_COLLECTION={DEFAULT_COLLECTION} />}
+          renderItem={({ item }) => <Post post={{...item, saved: isBookmarked(item.id)}} onLike={handleLike} onDislike={handleDislike} onComment={handleComment} onShare={handleShare} onImagePress={handleImagePress} onSave={handleSave} onAward={handleAward} themeColors={themeColors} onMore={handleMorePress} isBookmarked={isBookmarked} DEFAULT_COLLECTION={DEFAULT_COLLECTION} onProfilePress={handleProfilePress} />}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={() => (
@@ -652,19 +663,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7f7f7',
   },
   postContainer: {
-    backgroundColor: '#fff',
-    marginBottom: 8,
+    marginBottom: 10,
     borderRadius: 8,
     marginHorizontal: 8,
-    padding: 16,
+    padding: 12,
     ...Platform.select({
       web: {
-        boxShadow: '0px 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: '0px 2px 8px rgba(0,0,0,0.06)',
       },
       default: {
-    shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
         elevation: 2,
       },
     }),
@@ -673,7 +683,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   userInfo: {
     flexDirection: 'row',
@@ -681,10 +691,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 8,
   },
   userDetails: {
     flex: 1,
@@ -702,27 +712,28 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   postContent: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   postTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
-    lineHeight: 22,
-    marginBottom: 12,
+    lineHeight: 20,
+    marginBottom: 8,
   },
   postImage: {
     width: '100%',
-    height: 200,
+    height: 180,
     borderRadius: 8,
+    marginTop: 6,
+    marginBottom: 2,
     backgroundColor: '#f0f0f0',
   },
   postActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
   actionGroup: {
     flexDirection: 'row',
@@ -731,14 +742,14 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 20,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    marginRight: 12,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
     borderRadius: 4,
   },
   actionText: {
-    marginLeft: 6,
-    fontSize: 14,
+    marginLeft: 4,
+    fontSize: 13,
     fontWeight: '500',
   },
   saveButton: {
@@ -753,9 +764,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#111',
-    paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingTop: Platform.OS === 'ios' ? 64 : 36,
+    paddingHorizontal: 20,
+    paddingBottom: 18,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(0,0,0,0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 2,
+      },
+    }),
   },
   headerLeft: {
     flexDirection: 'row',

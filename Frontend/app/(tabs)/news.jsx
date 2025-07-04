@@ -1,4 +1,5 @@
 import { AntDesign, Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { FlatList, Image, Platform, RefreshControl, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -8,9 +9,10 @@ import CommentModal from '../../components/CommentModal';
 import ImageModal from '../../components/ImageModal';
 import MoreMenu from '../../components/MoreMenu';
 import PopupMenu from '../../components/PopupMenu';
+import { usePosts } from '../../components/PostContext';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
-import { getRandomRecentTimestamp, getRelativeTime } from '../../utils/timeUtils';
+import { getRelativeTime } from '../../utils/timeUtils';
 
 // Image mapping for profile pictures and news images
 const imageMap = {
@@ -54,11 +56,11 @@ const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
     const router = useRouter();
   const { themeColors } = useTheme();
     return (
-    <View style={[styles.header, { backgroundColor: themeColors.background }] }>
+    <View style={[styles.header, { backgroundColor: themeColors.background, borderColor: themeColors.border }] }>
             <View style={styles.headerLeft}>
         {/* App Logo and Menu Toggle */}
             <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setMenuOpen(open => !open)}>
-          <Text style={[styles.logoText, { color: '#2E45A3' } ]}>News</Text>
+          <Text style={[styles.logoText, { color: themeColors.accent } ]}>News</Text>
           <Ionicons name={menuOpen ? "chevron-up" : "chevron-down"} size={18} color={themeColors.icon} />
             </TouchableOpacity>
             </View>
@@ -77,22 +79,33 @@ const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
 };
 
 // Category Button Component - For filtering news by category
-const CategoryButton = ({ title, active, onPress }) => (
+const CategoryButton = ({ title, active, onPress }) => {
+  const { themeColors } = useTheme();
+  return (
     <TouchableOpacity 
-        style={[styles.categoryButton, active && styles.activeCategoryButton]} 
+        style={[
+          styles.categoryButton, 
+          { backgroundColor: themeColors.card },
+          active && { backgroundColor: themeColors.accent }
+        ]} 
         onPress={onPress}
     >
-        <Text style={[styles.categoryText, active && styles.activeCategoryText]}>{title}</Text>
+        <Text style={[
+          styles.categoryText, 
+          { color: themeColors.textSecondary },
+          active && { color: themeColors.background }
+        ]}>{title}</Text>
     </TouchableOpacity>
-);
+  );
+};
 
 // Main Post Component - Displays individual posts in the news feed
 const Post = ({ post, onLike, onDislike, onComment, themeColors }) => (
-  <View style={[styles.postContainer, { backgroundColor: themeColors.card }]}>
+  <View style={[styles.postContainer, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
     {/* Post Header - User info and more options */}
     <View style={styles.postHeader}>
       <View style={styles.userInfo}>
-        <Image source={imageMap[post.avatar]} style={styles.avatar} />
+        <Image source={imageMap[post.avatar] ? imageMap[post.avatar] : require('../../assets/images/Commenter1.jpg')} style={styles.avatar} />
         <View style={styles.userDetails}>
           <Text style={[styles.username, { color: themeColors.text }]}>{post.user}</Text>
           <Text style={[styles.postTime, { color: themeColors.textSecondary }]}>{getRelativeTime(post.time)}</Text>
@@ -129,8 +142,7 @@ const Post = ({ post, onLike, onDislike, onComment, themeColors }) => (
             {post.likes}
           </Text>
         </TouchableOpacity>
-        
-        {/* Dislike Button - Uses layered heartbroken icon for outlined/solid effect */}
+        {/* Dislike Button */}
         <TouchableOpacity style={styles.actionButton} onPress={() => onDislike(post.id)}>
           <View style={{ position: 'relative' }}>
             <MaterialIcons 
@@ -149,14 +161,12 @@ const Post = ({ post, onLike, onDislike, onComment, themeColors }) => (
             )}
           </View>
         </TouchableOpacity>
-        
         {/* Comment Button */}
         <TouchableOpacity style={styles.actionButton} onPress={() => onComment(post.id)}>
           <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
           <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{post.comments}</Text>
         </TouchableOpacity>
       </View>
-      
       <View style={styles.actionGroup}>
         {/* Share Button */}
         <TouchableOpacity style={styles.actionButton}>
@@ -164,25 +174,40 @@ const Post = ({ post, onLike, onDislike, onComment, themeColors }) => (
         </TouchableOpacity>
         {/* Save/Bookmark Button */}
         <TouchableOpacity style={styles.saveButton}>
+          {post.saved ? (
+            <FontAwesome name="bookmark" size={20} color={themeColors.accent} />
+          ) : (
           <Feather name="bookmark" size={20} color={themeColors.textSecondary} />
+          )}
         </TouchableOpacity>
       </View>
     </View>
   </View>
 );
 
+// Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)
+const formatCount = (num) => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return num;
+};
+
 // News Card Component - Displays news articles with source attribution
-const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress, onSave, onAward, themeColors, onMore, isBookmarked, DEFAULT_COLLECTION }) => (
-  <View style={[styles.newsCard, { backgroundColor: themeColors.card }]}>
+const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress, onSave, onAward, themeColors, onMore, isBookmarked, DEFAULT_COLLECTION, onProfilePress }) => (
+  <View style={[styles.newsCard, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
     {/* News Header - Source info and timestamp */}
     <View style={styles.newsHeader}>
-      <View style={styles.newsSource}>
-        <Image source={imageMap[news.sourceLogo]} style={styles.sourceLogo} />
-        <View style={styles.sourceInfo}>
-          <Text style={[styles.sourceName, { color: themeColors.text }]}>{news.source}</Text>
+      <TouchableOpacity style={styles.newsUserInfo} onPress={() => onProfilePress(news)}>
+        <Image source={imageMap[news.avatar]} style={styles.newsAvatar} />
+        <View style={styles.newsUserDetails}>
+          <Text style={[styles.newsUsername, { color: themeColors.text }]}>{news.user}</Text>
           <Text style={[styles.newsTime, { color: themeColors.textSecondary }]}>{getRelativeTime(news.timestamp)}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.moreButton} onPress={() => onMore(news)}>
         <Feather name="more-horizontal" size={20} color={themeColors.textSecondary} />
       </TouchableOpacity>
@@ -205,7 +230,7 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
       )}
     </View>
 
-    {/* News Actions - Upvote, downvote, comment, share, bookmark, award buttons */}
+    {/* News Actions - Upvote, downvote, comment, share, bookmark buttons */}
     <View style={styles.newsActions}>
       <View style={styles.newsActionGroup}>
         <TouchableOpacity style={styles.newsActionButton} onPress={() => onUpvote(news.id)}>
@@ -214,7 +239,7 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
             size={20} 
             color={news.upvoted ? '#FF4500' : themeColors.textSecondary} 
           />
-          <Text style={[styles.newsActionText, { color: news.upvoted ? '#FF4500' : themeColors.textSecondary }]}> {news.upvotes} </Text>
+          <Text style={[styles.newsActionText, { color: news.upvoted ? '#FF4500' : themeColors.textSecondary }]}> {formatCount(news.upvotes)} </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.newsActionButton} onPress={() => onDownvote(news.id)}>
           <AntDesign 
@@ -225,18 +250,19 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
         </TouchableOpacity>
         <TouchableOpacity style={styles.newsActionButton} onPress={() => onComment(news.id)}>
           <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
-          <Text style={[styles.newsActionText, { color: themeColors.textSecondary }]}>{news.comments}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.newsActionButton} onPress={() => onShare(news.id)}>
-          <Feather name="share-2" size={20} color={themeColors.textSecondary} />
+          <Text style={[styles.newsActionText, { color: themeColors.textSecondary }]}>{formatCount(news.comments)}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.newsActionGroup}>
-        <TouchableOpacity style={styles.newsActionButton} onPress={() => onAward(news.id)}>
-          <MaterialIcons name={news.awarded ? 'emoji-events' : 'emoji-events'} size={22} color={news.awarded ? '#FFD700' : themeColors.textSecondary} />
+        <TouchableOpacity style={styles.newsActionButton} onPress={() => onShare(news.id)}>
+          <Feather name="share-2" size={20} color={themeColors.textSecondary} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.newsSaveButton} onPress={() => onSave(news.id)}>
-          <Feather name={isBookmarked(news.id, DEFAULT_COLLECTION) ? 'bookmark' : 'bookmark'} size={20} color={isBookmarked(news.id, DEFAULT_COLLECTION) ? '#2E45A3' : themeColors.textSecondary} />
+          {isBookmarked(news.id, DEFAULT_COLLECTION) ? (
+            <FontAwesome name="bookmark" size={20} color={themeColors.accent} />
+          ) : (
+            <Feather name="bookmark" size={20} color={themeColors.textSecondary} />
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -246,121 +272,7 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
 // Main News Screen Component
 const News = () => {
   // State management for news and UI
-  const [news, setNews] = useState([
-        {
-            id: '1',
-      title: 'Breaking: Major Tech Company Announces Revolutionary AI Breakthrough',
-      excerpt: 'Scientists have developed a new artificial intelligence system that could transform how we interact with technology...',
-      source: 'TechNews Daily',
-      sourceLogo: 'harry logo.webp',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-            upvotes: 1247,
-            comments: 89,
-            upvoted: false,
-            downvoted: false,
-      image: 'curry.jpg',
-      category: 'Technology'
-        },
-        {
-            id: '2',
-      title: 'Sports: Underdog Team Makes Historic Victory in Championship Game',
-      excerpt: 'In an unexpected turn of events, the underdog team has secured their first championship in 50 years...',
-      source: 'Sports Central',
-      sourceLogo: 'Messi.jpg',
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-            upvotes: 892,
-            comments: 156,
-            upvoted: false,
-            downvoted: false,
-      image: 'Ronaldo.jpg',
-      category: 'Sports'
-        },
-        {
-            id: '3',
-      title: 'Science: New Study Reveals Surprising Benefits of Daily Exercise',
-      excerpt: 'Research shows that just 30 minutes of daily exercise can significantly improve mental health and longevity...',
-      source: 'Health & Science',
-      sourceLogo: 'Penguin.jpg',
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-            upvotes: 567,
-      comments: 78,
-            upvoted: false,
-            downvoted: false,
-      image: 'SGA.jpg',
-      category: 'Science'
-        },
-        {
-            id: '4',
-      title: 'Entertainment: Award-Winning Director Announces New Blockbuster Project',
-      excerpt: 'The acclaimed filmmaker has revealed plans for their most ambitious project yet, set to begin production next year...',
-      source: 'Entertainment Weekly',
-      sourceLogo: 'danny-1.webp',
-      timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8 hours ago
-            upvotes: 445,
-      comments: 67,
-            upvoted: false,
-            downvoted: false,
-      image: 'daniel-radcliffes-acting-v0-zhahfgw6fj5f1.webp',
-      category: 'Entertainment'
-        },
-        {
-            id: '5',
-      title: 'Business: Global Markets React to New Economic Policy Changes',
-      excerpt: 'Financial markets worldwide are responding to the latest policy announcements from major central banks...',
-      source: 'Business Insider',
-      sourceLogo: 'Logo-NBA.png',
-      timestamp: new Date(Date.now() - 10 * 60 * 60 * 1000), // 10 hours ago
-            upvotes: 334,
-            comments: 45,
-            upvoted: false,
-            downvoted: false,
-      image: 'T1.jpg',
-      category: 'Business'
-    },
-    {
-      id: '6',
-      title: 'Politics: New Legislation Aims to Address Climate Change Concerns',
-      excerpt: 'Lawmakers have introduced comprehensive climate legislation that could reshape environmental policy...',
-      source: 'Political Times',
-      sourceLogo: 'N.webp',
-      timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
-      upvotes: 678,
-      comments: 123,
-      upvoted: false,
-      downvoted: false,
-      image: 'w1.jpg',
-      category: 'Politics'
-    },
-    {
-      id: '7',
-      title: 'Health: Breakthrough in Cancer Treatment Shows Promising Results',
-      excerpt: 'Clinical trials for a new cancer treatment have shown remarkable success rates in early testing phases...',
-      source: 'Medical News',
-      sourceLogo: 'K.jpg',
-      timestamp: new Date(Date.now() - 14 * 60 * 60 * 1000), // 14 hours ago
-      upvotes: 789,
-      comments: 234,
-      upvoted: false,
-      downvoted: false,
-      image: 'MB.jpg',
-      category: 'Health'
-    },
-    {
-      id: '8',
-      title: 'Technology: Quantum Computing Milestone Achieved by Research Team',
-      excerpt: 'Scientists have successfully demonstrated quantum supremacy in a breakthrough that could revolutionize computing...',
-      source: 'Tech Innovations',
-      sourceLogo: 'D.jpg',
-      timestamp: new Date(Date.now() - 16 * 60 * 60 * 1000), // 16 hours ago
-      upvotes: 923,
-      comments: 167,
-      upvoted: false,
-      downvoted: false,
-      image: 'yu.jpg',
-      category: 'Technology'
-    }
-  ].map(n => ({ ...n, saved: false, awarded: false, timestamp: getRandomRecentTimestamp() })));
-  
+  const { posts } = usePosts();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [lastTabPath, setLastTabPath] = useState(null);
@@ -428,7 +340,7 @@ const News = () => {
 
   // Handle upvote button press - increases upvotes and toggles upvote state
     const handleUpvote = (id) => {
-        setNews(news => news.map(item => {
+        setPosts(posts => posts.map(item => {
             if (item.id === id) {
         if (item.upvoted) {
           return { ...item, upvoted: false, upvotes: item.upvotes - 1 };
@@ -442,7 +354,7 @@ const News = () => {
 
   // Handle downvote button press - decreases upvotes and toggles downvote state
     const handleDownvote = (id) => {
-        setNews(news => news.map(item => {
+        setPosts(posts => posts.map(item => {
             if (item.id === id) {
         if (item.downvoted) {
           return { ...item, downvoted: false };
@@ -461,7 +373,7 @@ const News = () => {
 
   // Handle comment button press - opens comment modal
   const handleComment = (id) => {
-    const newsItem = news.find(n => n.id === id);
+    const newsItem = posts.find(n => n.id === id);
     setSelectedNews(newsItem);
     setCommentModalVisible(true);
   };
@@ -480,7 +392,7 @@ const News = () => {
     setComments(prev => [newComment, ...prev]);
     
     // Update news comment count
-    setNews(news => news.map(item => {
+    setPosts(posts => posts.map(item => {
       if (item.id === selectedNews.id) {
         return { ...item, comments: item.comments + 1 };
             }
@@ -505,7 +417,7 @@ const News = () => {
   // Handle share functionality
   const handleShare = async (id) => {
     try {
-      const newsItem = news.find(n => n.id === id);
+      const newsItem = posts.find(n => n.id === id);
       if (!newsItem) return;
 
       const shareContent = {
@@ -538,20 +450,16 @@ const News = () => {
     }
   };
 
-  // Filter news by search text and category
-  const filteredNews = news.filter(item => {
-    // First filter by search text
+  // Filter and sort posts for News feed
+  const filteredNews = posts
+    .filter(post => (post.category || '').toLowerCase() === 'news')
+    .filter(item => {
     const matchesSearch = searchText.trim() === '' || 
       item.title.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.source.toLowerCase().includes(searchText.toLowerCase()) ||
-      (item.excerpt && item.excerpt.toLowerCase().includes(searchText.toLowerCase()));
-    
-    // Then filter by category
-    const matchesCategory = selectedCategory === 'All' || 
-      item.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+        (item.content && item.content.toLowerCase().includes(searchText.toLowerCase()));
+      return matchesSearch;
+    })
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   // Search functionality handlers
   const handleSearchIcon = () => setSearchOpen(true);
@@ -561,7 +469,7 @@ const News = () => {
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => {
-      setNews(news => news.map(item => ({ ...item, upvoted: false, downvoted: false })));
+      setPosts(posts => posts.map(item => ({ ...item, upvoted: false, downvoted: false })));
       setRefreshing(false);
     }, 1500);
   };
@@ -573,13 +481,13 @@ const News = () => {
   };
 
   const handleSave = (id) => {
-    const newsItem = news.find(n => n.id === id);
+    const newsItem = posts.find(n => n.id === id);
     if (newsItem) {
       toggleBookmark(newsItem, DEFAULT_COLLECTION);
     }
   };
   const handleAward = (id) => {
-    setNews(news => news.map(item => item.id === id ? { ...item, awarded: !item.awarded } : item));
+    setPosts(posts => posts.map(item => item.id === id ? { ...item, awarded: !item.awarded } : item));
   };
 
   const handleMorePress = (news) => {
@@ -589,15 +497,26 @@ const News = () => {
 
   // Handler for long-press (open collection modal)
   const handleBookmarkLongPress = (id) => {
-    const newsItem = news.find(n => n.id === id);
+    const newsItem = posts.find(n => n.id === id);
     if (newsItem) {
       setCollectionModalPost(newsItem);
       setCollectionModalVisible(true);
     }
   };
 
+  const handleProfilePress = (news) => {
+    const userPosts = posts.filter(n => n.user === news.user);
+    router.navigate('profile', {
+      user: {
+        avatar: news.avatar,
+        user: news.user,
+        posts: userPosts,
+      }
+    });
+  };
+
     return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }] }>
+    <View style={[styles.container, { backgroundColor: themeColors.background, borderColor: themeColors.border }] }>
             <Stack.Screen options={{ headerShown: false }} />
       {searchOpen ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 40, backgroundColor: themeColors.background, borderBottomWidth: 1, borderColor: themeColors.border }}>
@@ -616,7 +535,7 @@ const News = () => {
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={handleCancelSearch} style={{ marginLeft: 8 }}>
-            <Text style={{ color: themeColors.accent || '#2E45A3', fontSize: 16 }}>Cancel</Text>
+            <Text style={{ color: themeColors.accent, fontSize: 16 }}>Cancel</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -651,7 +570,7 @@ const News = () => {
         themeColors={themeColors}
       />
             
-            <View style={styles.categoriesContainer}>
+            <View style={[styles.categoriesContainer, { backgroundColor: themeColors.background, borderBottomWidth: 1, borderColor: themeColors.border }]}>
                 <FlatList
                     horizontal
                     data={categories}
@@ -685,6 +604,7 @@ const News = () => {
                         onMore={handleMorePress}
                         isBookmarked={isBookmarked}
                         DEFAULT_COLLECTION={DEFAULT_COLLECTION}
+                        onProfilePress={handleProfilePress}
                     />
                 )}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -738,22 +658,20 @@ const News = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    backgroundColor: '#f7f7f7',
   },
   postContainer: {
-    backgroundColor: '#fff',
-    marginBottom: 8,
+    marginBottom: 10,
     borderRadius: 8,
     marginHorizontal: 8,
-    padding: 16,
+    padding: 12,
     ...Platform.select({
       web: {
-        boxShadow: '0px 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: '0px 2px 8px rgba(0,0,0,0.06)',
       },
       default: {
         shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
         elevation: 2,
       },
     }),
@@ -762,7 +680,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   userInfo: {
     flexDirection: 'row',
@@ -770,10 +688,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 8,
   },
   userDetails: {
     flex: 1,
@@ -791,18 +709,20 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   postContent: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   postTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
-    lineHeight: 22,
-    marginBottom: 12,
+    lineHeight: 20,
+    marginBottom: 8,
   },
   postImage: {
     width: '100%',
-    height: 200,
+    height: 180,
     borderRadius: 8,
+    marginTop: 6,
+    marginBottom: 2,
     backgroundColor: '#f0f0f0',
   },
   postActions: {
@@ -811,7 +731,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
   actionGroup: {
     flexDirection: 'row',
@@ -820,14 +739,14 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 20,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    marginRight: 12,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
     borderRadius: 4,
   },
   actionText: {
-    marginLeft: 6,
-    fontSize: 14,
+    marginLeft: 4,
+    fontSize: 13,
     fontWeight: '500',
   },
   saveButton: {
@@ -837,7 +756,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-    backgroundColor: '#111',
     paddingTop: 50,
         paddingHorizontal: 16,
     paddingBottom: 12,
@@ -847,7 +765,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     logoText: {
-        color: '#2E45A3',
     fontWeight: 'bold',
         fontSize: 22,
     flexDirection: 'row',
@@ -859,10 +776,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     },
     categoriesContainer: {
-        backgroundColor: '#fff',
         paddingVertical: 8,
         borderBottomWidth: 1,
-        borderBottomColor: '#e1e8ed',
     },
     categoriesList: {
         paddingHorizontal: 16,
@@ -872,28 +787,23 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         marginRight: 8,
         borderRadius: 20,
-        backgroundColor: '#f7f9fa',
     },
     activeCategoryButton: {
-        backgroundColor: '#2E45A3',
     },
     categoryText: {
         fontSize: 14,
         fontWeight: '500',
-        color: '#657786',
     },
     activeCategoryText: {
-        color: '#fff',
         fontWeight: 'bold',
     },
     newsList: {
         padding: 8,
     },
     newsCard: {
-        backgroundColor: '#fff',
-    marginBottom: 8,
-        borderRadius: 8,
-    marginHorizontal: 8,
+    marginBottom: 12,
+        borderRadius: 16,
+    marginHorizontal: 12,
         padding: 16,
     ...Platform.select({
       web: {
@@ -913,60 +823,71 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     marginBottom: 12,
     },
-  newsSource: {
+  newsUserInfo: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
     },
-  sourceLogo: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  newsAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     marginRight: 8,
   },
-  sourceInfo: {
-    flexDirection: 'column',
+  newsUserDetails: {
     flex: 1,
   },
-  sourceName: {
+  newsUsername: {
     fontWeight: '600',
-        fontSize: 14,
-        color: '#1a1a1a',
+    fontSize: 15,
+    marginBottom: 2,
     },
     newsTime: {
-        fontSize: 12,
-        color: '#657786',
-        marginLeft: 4,
+    fontSize: 13,
+    opacity: 0.7,
+  },
+  moreButton: {
+    padding: 4,
     },
   newsContent: {
-    marginBottom: 12,
+    marginBottom: 16,
     },
     newsTitle: {
-        fontSize: 16,
-    fontWeight: '500',
-        lineHeight: 22,
+        fontSize: 18,
+    fontWeight: '600',
+        lineHeight: 24,
     marginBottom: 12,
-        color: '#1a1a1a',
     },
     newsExcerpt: {
-        fontSize: 14,
-        lineHeight: 20,
-        color: '#657786',
+        fontSize: 15,
+        lineHeight: 22,
         marginBottom: 12,
     },
   newsImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    height: 300,
+    borderRadius: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+      },
+    }),
   },
     newsActions: {
         flexDirection: 'row',
     alignItems: 'center',
         justifyContent: 'space-between',
-    paddingTop: 8,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
     },
   newsActionGroup: {
         flexDirection: 'row',

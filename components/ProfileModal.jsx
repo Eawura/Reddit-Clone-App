@@ -1,8 +1,11 @@
 import { Entypo, Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useRef, useState } from 'react';
-import { Animated, Dimensions, Image, KeyboardAvoidingView, Modal, PanResponder, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, Animated, Dimensions, Image, KeyboardAvoidingView, Modal, PanResponder, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useBookmarks } from './BookmarkContext';
+import { usePosts } from './PostContext';
+import { useProfile } from './ProfileContext';
 import { useTheme } from './ThemeContext';
 
 const { width } = Dimensions.get('window');
@@ -52,15 +55,38 @@ export default function ProfileModal({ visible, onClose, onLogout, bookmarks = [
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-  const [avatarUri, setAvatarUri] = useState(null);
+  const { profile, setProfile } = useProfile();
   const [notifications, setNotifications] = useState(true);
   const [autoPlay, setAutoPlay] = useState(false);
   const [dataSaver, setDataSaver] = useState(false);
   const { theme, toggleTheme, themeColors } = useTheme();
   const [showProfileDetails, setShowProfileDetails] = useState(false);
-  const [editUsername, setEditUsername] = useState('u/User');
-  const [editBio, setEditBio] = useState('This is my bio.');
+  const [editUsername, setEditUsername] = useState(profile.username);
+  const [editBio, setEditBio] = useState(profile.bio);
+  const [avatarUri, setAvatarUri] = useState(profile.avatar);
   const { collections, removeBookmark } = useBookmarks();
+  const [showPrivacySettings, setShowPrivacySettings] = useState(false);
+  const [profileVisible, setProfileVisible] = useState(true);
+  const [allowDirectMessages, setAllowDirectMessages] = useState(true);
+  const [allowChatRequests, setAllowChatRequests] = useState(true);
+  const [allowFollowRequests, setAllowFollowRequests] = useState(true);
+  const [showOnlineStatus, setShowOnlineStatus] = useState(true);
+  const [allowSearchEngines, setAllowSearchEngines] = useState(false);
+  const [allowProfileViews, setAllowProfileViews] = useState(true);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [markdownEnabled, setMarkdownEnabled] = useState(true);
+  const [autoExpandMedia, setAutoExpandMedia] = useState(true);
+  const [showTrendingCommunities, setShowTrendingCommunities] = useState(true);
+  const [showRecommendedPosts, setShowRecommendedPosts] = useState(true);
+  const [allowPersonalizedAds, setAllowPersonalizedAds] = useState(false);
+  const [allowDataCollection, setAllowDataCollection] = useState(false);
+  const { posts } = usePosts();
+  const [followers] = useState(0);
+  const [following] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  const userPosts = posts.filter(p => p.user === profile.username);
 
   // FAQ data
   const faqData = [
@@ -141,7 +167,7 @@ export default function ProfileModal({ visible, onClose, onLogout, bookmarks = [
   const pickImage = async () => {
     setShowAvatarPicker(false);
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: [ImagePicker.MediaType.IMAGE],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
@@ -159,12 +185,110 @@ export default function ProfileModal({ visible, onClose, onLogout, bookmarks = [
       return;
     }
     let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: [ImagePicker.MediaType.IMAGE],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
     });
     if (!result.canceled && result.assets && result.assets[0].uri) {
       setAvatarUri(result.assets[0].uri);
+    }
+  };
+
+  const handleSaveProfile = () => {
+    const newProfileData = {
+      username: editUsername,
+      bio: editBio,
+      avatar: avatarUri
+    };
+    setProfile(newProfileData);
+    setShowProfileDetails(false);
+    
+    // Show success message
+    Alert.alert('Success', 'Profile updated successfully!');
+  };
+
+  // Load settings on component mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  // Save settings whenever they change
+  useEffect(() => {
+    saveSettings();
+  }, [
+    notifications, autoPlay, dataSaver, profile, online, emailNotifications,
+    markdownEnabled, autoExpandMedia, showTrendingCommunities, showRecommendedPosts,
+    profileVisible, allowDirectMessages, allowChatRequests, allowFollowRequests,
+    showOnlineStatus, allowSearchEngines, allowProfileViews, twoFactorEnabled,
+    allowPersonalizedAds, allowDataCollection
+  ]);
+
+  // Save settings to AsyncStorage
+  const saveSettings = async () => {
+    try {
+      const settings = {
+        notifications,
+        autoPlay,
+        dataSaver,
+        profile,
+        online,
+        emailNotifications,
+        markdownEnabled,
+        autoExpandMedia,
+        showTrendingCommunities,
+        showRecommendedPosts,
+        profileVisible,
+        allowDirectMessages,
+        allowChatRequests,
+        allowFollowRequests,
+        showOnlineStatus,
+        allowSearchEngines,
+        allowProfileViews,
+        twoFactorEnabled,
+        allowPersonalizedAds,
+        allowDataCollection
+      };
+      await AsyncStorage.setItem('userSettings', JSON.stringify(settings));
+    } catch (error) {
+      console.log('Error saving settings:', error);
+    }
+  };
+
+  // Load settings from AsyncStorage
+  const loadSettings = async () => {
+    try {
+      const settings = await AsyncStorage.getItem('userSettings');
+      if (settings) {
+        const parsed = JSON.parse(settings);
+        setNotifications(parsed.notifications ?? true);
+        setAutoPlay(parsed.autoPlay ?? false);
+        setDataSaver(parsed.dataSaver ?? false);
+        setProfile(parsed.profile ?? { username: 'u/User', bio: 'This is my bio.', avatar: null });
+        setOnline(parsed.online ?? true);
+        setEmailNotifications(parsed.emailNotifications ?? true);
+        setMarkdownEnabled(parsed.markdownEnabled ?? true);
+        setAutoExpandMedia(parsed.autoExpandMedia ?? true);
+        setShowTrendingCommunities(parsed.showTrendingCommunities ?? true);
+        setShowRecommendedPosts(parsed.showRecommendedPosts ?? true);
+        setProfileVisible(parsed.profileVisible ?? true);
+        setAllowDirectMessages(parsed.allowDirectMessages ?? true);
+        setAllowChatRequests(parsed.allowChatRequests ?? true);
+        setAllowFollowRequests(parsed.allowFollowRequests ?? true);
+        setShowOnlineStatus(parsed.showOnlineStatus ?? true);
+        setAllowSearchEngines(parsed.allowSearchEngines ?? false);
+        setAllowProfileViews(parsed.allowProfileViews ?? true);
+        setTwoFactorEnabled(parsed.twoFactorEnabled ?? false);
+        setAllowPersonalizedAds(parsed.allowPersonalizedAds ?? false);
+        setAllowDataCollection(parsed.allowDataCollection ?? false);
+        
+        // Update edit fields
+        setEditUsername(parsed.username ?? 'u/User');
+        setEditBio(parsed.bio ?? 'This is my bio.');
+        setAvatarUri(parsed.avatar ?? null);
+      }
+    } catch (error) {
+      console.log('Error loading settings:', error);
     }
   };
 
@@ -184,6 +308,7 @@ export default function ProfileModal({ visible, onClose, onLogout, bookmarks = [
               transform: [{ translateX }],
               backgroundColor: themeColors.background,
             },
+            { backgroundColor: themeColors.background, paddingTop: Platform.OS === 'ios' ? 56 : 32 }
           ]}
           {...panResponder.panHandlers}
         >
@@ -193,36 +318,39 @@ export default function ProfileModal({ visible, onClose, onLogout, bookmarks = [
           </TouchableOpacity>
           {/* Avatar */}
           <TouchableOpacity onPress={() => setShowAvatarPicker(true)}>
-            <Image
-              source={avatarUri ? { uri: avatarUri } : require('../assets/images/Penguin.jpg')}
-              style={styles.avatar}
-            />
+            <View style={styles.redditAvatarContainer}>
+              <Image
+                source={avatarUri ? { uri: avatarUri } : require('../assets/images/Penguin.png')}
+                style={styles.redditAvatar}
+                resizeMode="contain"
+              />
+            </View>
             <View style={styles.cameraBadge}>
-              <Feather name="camera" size={20} color="#fff" />
+              <Feather name="camera" size={20} color={themeColors.text} />
             </View>
           </TouchableOpacity>
-          <Text style={[styles.username, { color: themeColors.text }]}>u/User</Text>
+          <Text style={[styles.username, { color: themeColors.text }]}>{profile.username}</Text>
           {/* Online Status */}
-          <TouchableOpacity style={[styles.statusContainer, { borderColor: online ? '#00E676' : '#ccc' }]} onPress={() => setOnline(o => !o)}>
-            <View style={[styles.statusDot, { backgroundColor: online ? '#00E676' : '#ccc' }]} />
-            <Text style={[styles.statusText, { color: online ? '#00E676' : '#ccc' }]}>Online Status: {online ? 'On' : 'Off'}</Text>
+          <TouchableOpacity style={[styles.statusContainer, { borderColor: online ? '#46D160' : themeColors.border }]} onPress={() => setOnline(o => !o)}>
+            <View style={[styles.statusDot, { backgroundColor: online ? '#46D160' : themeColors.border }]} />
+            <Text style={[styles.statusText, { color: online ? '#46D160' : themeColors.border }]}>Online Status: {online ? 'On' : 'Off'}</Text>
           </TouchableOpacity>
           {/* Menu */}
           <View style={[styles.menu, { backgroundColor: themeColors.card }]}> 
             <TouchableOpacity style={styles.menuItem} onPress={() => setShowProfileDetails(true)}>
-              <Ionicons name="person-circle-outline" size={28} color="#ccc" />
+              <Ionicons name="person-circle-outline" size={28} color={themeColors.text} />
               <Text style={[styles.menuText, { color: themeColors.text }]}>Profile</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem} onPress={() => setShowBookmarks(true)}>
-              <Feather name="bookmark" size={26} color="#bbb" style={styles.menuIcon} />
+              <Feather name="bookmark" size={26} color={themeColors.text} style={styles.menuIcon} />
               <Text style={[styles.menuText, { color: themeColors.text }]}>Bookmarks</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem} onPress={() => setShowSettings(true)}>
-              <Feather name="settings" size={26} color="#bbb" style={styles.menuIcon} />
+              <Feather name="settings" size={26} color={themeColors.text} style={styles.menuIcon} />
               <Text style={[styles.menuText, { color: themeColors.text }]}>Settings</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem} onPress={() => setShowFAQ(true)}>
-              <Entypo name="help" size={26} color="#bbb" style={styles.menuIcon} />
+              <Entypo name="help" size={26} color={themeColors.text} style={styles.menuIcon} />
               <Text style={[styles.menuText, { color: themeColors.text }]}>FAQ</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.menuItem, {marginTop: 16, flexDirection: 'row', alignItems: 'center'}]} onPress={toggleTheme}>
@@ -319,7 +447,7 @@ export default function ProfileModal({ visible, onClose, onLogout, bookmarks = [
                             <Text style={styles.bookmarkUser} numberOfLines={1}>{post.user}</Text>
                           </View>
                           <TouchableOpacity onPress={() => removeBookmark(post.id, collection)}>
-                            <Feather name="bookmark" size={22} color="#2E45A3" />
+                            <Feather name="bookmark" size={22} color={themeColors.accent} />
                           </TouchableOpacity>
                         </View>
                       ))}
@@ -413,7 +541,10 @@ export default function ProfileModal({ visible, onClose, onLogout, bookmarks = [
                   </View>
                   <Ionicons name="chevron-forward" size={24} color={themeColors.icon} />
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                <TouchableOpacity 
+                  style={[styles.settingItem, { borderBottomColor: themeColors.border }]}
+                  onPress={() => setShowPrivacySettings(true)}
+                >
                   <View style={styles.settingInfo}>
                     <Ionicons name="shield-checkmark" size={24} color={themeColors.icon} />
                     <View style={styles.settingText}>
@@ -453,10 +584,25 @@ export default function ProfileModal({ visible, onClose, onLogout, bookmarks = [
                       style={styles.profileDetailsAvatar}
                     />
                     <View style={styles.cameraBadge}>
-                      <Feather name="camera" size={20} color="#fff" />
+                      <Feather name="camera" size={20} color={themeColors.text} />
                     </View>
                   </TouchableOpacity>
                 </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 8 }}>
+                  <View style={{ flex: 1, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 20, fontWeight: 'bold', color: themeColors.text }}>{userPosts.length}</Text>
+                    <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 2 }}>Posts</Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 20, fontWeight: 'bold', color: themeColors.text }}>{followers}</Text>
+                    <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 2 }}>Followers</Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 20, fontWeight: 'bold', color: themeColors.text }}>{following}</Text>
+                    <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 2 }}>Following</Text>
+                  </View>
+                </View>
+                <View style={{ height: 1, backgroundColor: themeColors.border, marginBottom: 18 }} />
                 <Text style={[styles.inputLabel, { color: themeColors.text }]}>Username</Text>
                 <TextInput
                   style={[styles.input, { color: themeColors.text, borderColor: themeColors.border, backgroundColor: themeColors.card }]}
@@ -482,7 +628,7 @@ export default function ProfileModal({ visible, onClose, onLogout, bookmarks = [
                   <TouchableOpacity style={styles.profileDetailsCancel} onPress={() => setShowProfileDetails(false)}>
                     <Text style={[styles.profileDetailsCancelText, { color: themeColors.textSecondary }]}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.profileDetailsSave} onPress={() => { setShowProfileDetails(false); }}>
+                  <TouchableOpacity style={styles.profileDetailsSave} onPress={handleSaveProfile}>
                     <Text style={[styles.profileDetailsSaveText, { color: '#fff' }]}>Save</Text>
                   </TouchableOpacity>
                 </View>
@@ -490,6 +636,336 @@ export default function ProfileModal({ visible, onClose, onLogout, bookmarks = [
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Privacy Settings Modal */}
+      <Modal
+        visible={showPrivacySettings}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowPrivacySettings(false)}
+      >
+        <View style={[styles.faqBackdrop, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.faqModal, { backgroundColor: themeColors.background }]}>
+            <View style={styles.faqHeader}>
+              <Text style={[styles.faqTitle, { color: themeColors.text }]}>Privacy & Security</Text>
+              <TouchableOpacity onPress={() => setShowPrivacySettings(false)}>
+                <Ionicons name="close" size={28} color={themeColors.icon} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.faqContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.settingsSection}>
+                <Text style={[styles.settingsSectionTitle, { color: themeColors.text }]}>Privacy</Text>
+                
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="eye" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Profile Visibility</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Who can see your profile</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={profileVisible}
+                    onValueChange={setProfileVisible}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={profileVisible ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="chatbubble" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Direct Messages</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Allow users to send you direct messages</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={allowDirectMessages}
+                    onValueChange={setAllowDirectMessages}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={allowDirectMessages ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="chatbubbles" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Chat Requests</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Allow users to start chat conversations</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={allowChatRequests}
+                    onValueChange={setAllowChatRequests}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={allowChatRequests ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="person-add" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Follow Requests</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Allow users to follow your profile</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={allowFollowRequests}
+                    onValueChange={setAllowFollowRequests}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={allowFollowRequests ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="radio-button-on" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Show Online Status</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Display when you're active on the platform</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={showOnlineStatus}
+                    onValueChange={setShowOnlineStatus}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={showOnlineStatus ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="search" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Search Engine Indexing</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Allow search engines to index your profile</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={allowSearchEngines}
+                    onValueChange={setAllowSearchEngines}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={allowSearchEngines ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.settingsSection}>
+                <Text style={[styles.settingsSectionTitle, { color: themeColors.text }]}>Security</Text>
+                
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="shield-checkmark" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Two-Factor Authentication</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Add an extra layer of security to your account</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={twoFactorEnabled}
+                    onValueChange={setTwoFactorEnabled}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={twoFactorEnabled ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <TouchableOpacity style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="key" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Change Password</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Update your account password</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={24} color={themeColors.icon} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="phone-portrait" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Active Sessions</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Manage devices logged into your account</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={24} color={themeColors.icon} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.settingsSection}>
+                <Text style={[styles.settingsSectionTitle, { color: themeColors.text }]}>Content & Display</Text>
+                
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="mail" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Email Notifications</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Receive email updates about your account</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={emailNotifications}
+                    onValueChange={setEmailNotifications}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={emailNotifications ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="code" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Markdown Support</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Enable markdown formatting in posts and comments</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={markdownEnabled}
+                    onValueChange={setMarkdownEnabled}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={markdownEnabled ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="play-circle" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Auto-Expand Media</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Automatically expand images and videos in posts</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={autoExpandMedia}
+                    onValueChange={setAutoExpandMedia}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={autoExpandMedia ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="trending-up" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Trending Communities</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Show trending communities in your feed</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={showTrendingCommunities}
+                    onValueChange={setShowTrendingCommunities}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={showTrendingCommunities ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="bulb" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Recommended Posts</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Show personalized post recommendations</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={showRecommendedPosts}
+                    onValueChange={setShowRecommendedPosts}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={showRecommendedPosts ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.settingsSection}>
+                <Text style={[styles.settingsSectionTitle, { color: themeColors.text }]}>Data & Privacy</Text>
+                
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="megaphone" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Personalized Ads</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Allow personalized advertising based on your activity</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={allowPersonalizedAds}
+                    onValueChange={setAllowPersonalizedAds}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={allowPersonalizedAds ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <View style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="analytics" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Data Collection</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Allow collection of usage data to improve the app</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={allowDataCollection}
+                    onValueChange={setAllowDataCollection}
+                    trackColor={{ false: '#767577', true: '#FF4500' }}
+                    thumbColor={allowDataCollection ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <TouchableOpacity style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="download" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Download My Data</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Request a copy of your personal data</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={24} color={themeColors.icon} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="trash" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Delete Account</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Permanently delete your account and all data</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={24} color={themeColors.icon} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.settingsSection}>
+                <Text style={[styles.settingsSectionTitle, { color: themeColors.text }]}>Account Actions</Text>
+                
+                <TouchableOpacity style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="log-out" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Sign Out</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Sign out of your account on this device</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={24} color={themeColors.icon} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.settingItem, { borderBottomColor: themeColors.border }]}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="help-circle" size={24} color={themeColors.icon} />
+                    <View style={styles.settingText}>
+                      <Text style={[styles.settingTitle, { color: themeColors.text }]}>Privacy Policy</Text>
+                      <Text style={[styles.settingDescription, { color: themeColors.textSecondary }]}>Read our privacy policy and terms of service</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={24} color={themeColors.icon} />
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
     </>
   );
@@ -506,7 +982,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     width: MODAL_WIDTH,
-    backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderBottomLeftRadius: 24,
     alignItems: 'center',
@@ -527,9 +1002,10 @@ const styles = StyleSheet.create({
   },
   logout: {
     position: 'absolute',
-    left: 24,
-    top: 24,
-    zIndex: 2,
+    top: 32,
+    right: 16,
+    marginTop: 12,
+    zIndex: 10,
   },
   avatar: {
     width: 110,
@@ -826,5 +1302,20 @@ const styles = StyleSheet.create({
   profileDetailsSaveText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  redditAvatarContainer: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: '#f6f7f8', // Reddit's soft ash/gray
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  redditAvatar: {
+    width: 90,
+    height: 90,
   },
 }); 

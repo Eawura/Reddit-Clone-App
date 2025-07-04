@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { ProfileProvider } from './ProfileContext';
 
 const ThemeContext = createContext();
 
@@ -9,6 +10,7 @@ const lightColors = {
   textSecondary: '#333',
   border: '#e0e0e0',
   icon: '#222',
+  accent: '#2E45A3',
 };
 
 const darkColors = {
@@ -16,8 +18,9 @@ const darkColors = {
   card: '#232323',
   text: '#fff',
   textSecondary: '#ccc',
-  border: '#333',
+  border: 'rgba(255,255,255,0.07)',
   icon: '#fff',
+  accent: '#4A90E2',
 };
 
 export function ThemeProvider({ children }) {
@@ -41,73 +44,19 @@ const initialChats = [
     id: '1',
     name: 'Tommie Francis',
     avatar: 'Random.jpg',
-    lastMessage: 'Heyyy',
+    lastMessage: 'Are you free tonight?',
     time: '19:22',
     unread: 1,
+    messageStatus: 'received',
   },
   {
     id: '2',
     name: 'Recky',
     avatar: 'danny-1.webp',
-    lastMessage: 'Good evening. Where are you ...',
+    lastMessage: 'Can we meet tomorrow?',
     time: '19:15',
-    unread: 1,
-  },
-  {
-    id: '3',
-    name: 'Dad❤️❤️',
-    avatar: 'D.jpg',
-    lastMessage: "What's up?",
-    time: '18:52',
-    unread: 1,
-  },
-  {
-    id: '4',
-    name: 'Michael Brown',
-    avatar: 'MB.jpg',
-    lastMessage: 'Try exercising a lot.',
-    time: '18:00',
-    unread: 1,
-  },
-  {
-    id: '5',
-    name: 'Suzette Brewer',
-    avatar: 'w1.jpg',
-    lastMessage: '📷 Photo',
-    time: '12:01',
-    unread: 1,
-  },
-  {
-    id: '6',
-    name: 'Kelly Fletcher',
-    avatar: 'K.jpg',
-    lastMessage: '😂😂😂',
-    time: '10:33',
-    unread: 1,
-  },
-  {
-    id: '7',
-    name: 'Neal Mcintosh',
-    avatar: 'N.webp',
-    lastMessage: 'lol',
-    time: '7:59',
-    unread: 1,
-  },
-  {
-    id: '8',
-    name: 'Darius Yu',
-    avatar: 'yu.jpg',
-    lastMessage: 'Thank you 😊',
-    time: '6:06',
-    unread: 1,
-  },
-  {
-    id: '9',
-    name: 'Mary',
-    avatar: 'w1.jpg',
-    lastMessage: 'Photo',
-    time: 'Yesterday',
-    unread: 1,
+    unread: 2,
+    messageStatus: 'received',
   },
 ];
 
@@ -148,10 +97,12 @@ export function useDrawerContext() {
 // Update AppProvider to include DrawerProvider
 export function AppProvider({ children }) {
   return (
-    <ThemeProvider>
-      <ChatProvider>
-        <DrawerProvider>{children}</DrawerProvider>
-      </ChatProvider>
-    </ThemeProvider>
+    <ProfileProvider>
+      <ThemeProvider>
+        <ChatProvider>
+          <DrawerProvider>{children}</DrawerProvider>
+        </ChatProvider>
+      </ThemeProvider>
+    </ProfileProvider>
   );
 } 

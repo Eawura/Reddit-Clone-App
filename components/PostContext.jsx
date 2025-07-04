@@ -5,7 +5,22 @@ const PostContext = createContext();
 
 export function PostProvider({ children }) {
   // Initialize with demo posts
-  const [posts, setPosts] = useState(data.posts.map(p => ({ ...p, liked: false, disliked: false, awarded: false })));
+  const [posts, setPosts] = useState(
+    data.posts.map((p, i) => {
+      let ts = p.timestamp ? new Date(p.timestamp) : new Date();
+      if (isNaN(ts.getTime())) {
+        // If invalid, use now minus i*10 minutes
+        ts = new Date(Date.now() - i * 10 * 60 * 1000);
+      }
+      return {
+        ...p,
+        timestamp: ts,
+        liked: false,
+        disliked: false,
+        awarded: false,
+      };
+    })
+  );
 
   // Add a new post
   const addPost = (post) => {
@@ -13,7 +28,7 @@ export function PostProvider({ children }) {
       {
         ...post,
         id: Date.now().toString(),
-        timestamp: new Date(),
+        timestamp: post.timestamp ? new Date(post.timestamp) : new Date(),
         liked: false,
         disliked: false,
         awarded: false,

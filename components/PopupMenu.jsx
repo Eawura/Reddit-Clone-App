@@ -1,13 +1,15 @@
-import { AntDesign, Entypo, Feather, FontAwesome5 } from '@expo/vector-icons';
+import { Entypo, Feather, FontAwesome5 } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
 import React from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from './ThemeContext';
 
 const PopupMenu = ({ visible, router }) => {
   const pathname = usePathname();
+  const { themeColors } = useTheme();
 
   const menuItems = [
-    { name: 'Home', href: '/', icon: <AntDesign name="home" size={24} />, active: pathname === '/' },
+    { name: 'Home', href: '/', icon: <FontAwesome5 name="home" size={24} />, active: pathname === '/' },
     { name: 'Popular', href: '/popular', icon: <Feather name="arrow-up-right" size={24} />, active: pathname === '/popular' },
     { name: 'Watch', href: '/watch', icon: <Feather name="play-circle" size={24} />, active: pathname === '/watch' },
     { name: 'News', href: '/news', icon: <FontAwesome5 name="newspaper" size={22} />, active: pathname === '/news' },
@@ -17,15 +19,15 @@ const PopupMenu = ({ visible, router }) => {
   if (!visible) return null;
 
   return (
-    <View style={styles.menuContainer}>
+    <View style={[styles.menuContainer, { backgroundColor: themeColors.card }] }>
       {menuItems.map((item) => (
         <TouchableOpacity
           key={item.name}
-          style={[styles.menuItem, item.active && styles.activeMenuItem]}
+          style={[styles.menuItem, item.active && { backgroundColor: themeColors.accent + '22' }]}
           onPress={() => item.href !== '#' && router.push(item.href)}
         >
-          {React.cloneElement(item.icon, { color: item.active ? '#2E45A3' : '#222' })}
-          <Text style={[styles.menuText, item.active && styles.activeText]}>{item.name}</Text>
+          {React.cloneElement(item.icon, { color: item.active ? themeColors.accent : themeColors.icon })}
+          <Text style={[styles.menuText, { color: item.active ? themeColors.accent : themeColors.text }, item.active && styles.activeText]}>{item.name}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -37,10 +39,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 90,
     left: 50,
-    width: 250,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 8,
+    width: 180,
+    borderRadius: 10,
+    padding: 4,
     zIndex: 1,
     ...Platform.select({
       web: {
@@ -58,21 +59,16 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderRadius: 8,
-  },
-  activeMenuItem: {
-    backgroundColor: '#B9C1F7',
   },
   menuText: {
     marginLeft: 20,
     fontSize: 18,
-    color: '#222',
     fontWeight: '500',
   },
   activeText: {
-    color: '#2E45A3',
     fontWeight: 'bold',
   },
 });

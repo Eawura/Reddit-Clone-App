@@ -1,18 +1,34 @@
-import { AntDesign, Feather, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, Image, ImageBackground, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useBookmarks } from '../../components/BookmarkContext';
 import CollectionModal from '../../components/CollectionModal';
 import CommentModal from '../../components/CommentModal';
 import ImageModal from '../../components/ImageModal';
 import MoreMenu from '../../components/MoreMenu';
 import PopupMenu from '../../components/PopupMenu';
+import { usePosts } from '../../components/PostContext';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
-import { getRandomRecentTimestamp, getRelativeTime } from '../../utils/timeUtils';
+import { getRelativeTime } from '../../utils/timeUtils';
 
-import data from './popular_data.json';
+
+// Example trending stories data (replace with your own images/titles)
+const trendingStoriesData = [
+  { image: require('../../assets/images/Commenter1.jpg'), title: 'Cell Appreciation' },
+  { image: require('../../assets/images/Commenter2.jpg'), title: 'Invasive Wild Orchid' },
+  { image: require('../../assets/images/Commenter3.jpg'), title: 'Chat Summit Details' },
+  { image: require('../../assets/images/Commenter4.jpg'), title: 'NBA Playoffs' },
+  { image: require('../../assets/images/Commenter5.jpg'), title: 'Tech Innovations' },
+  { image: require('../../assets/images/Commenter6.jpg'), title: 'World Cup Qualifiers' },
+  { image: require('../../assets/images/Commenter7.jpg'), title: 'Movie Premieres' },
+  { image: require('../../assets/images/Commenter8.jpg'), title: 'Crypto Trends' },
+  { image: require('../../assets/images/Commenter9.jpg'), title: 'SpaceX Launch' },
+  { image: require('../../assets/images/Commenter10.jpg'), title: 'Fashion Week' },
+  // Add more as needed
+];
 
 // Image mapping for profile pictures and post images
 const imageMap = {
@@ -54,18 +70,29 @@ const formatLikes = (num) => {
     return num;
   };
 
+// Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)
+const formatCount = (num) => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return num;
+};
+
 // Main Post Component - Displays individual posts in the popular feed
-const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAward, onShare, themeColors, onMore, onBookmarkLongPress, isBookmarked }) => (
+const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAward, onShare, themeColors, onMore, onBookmarkLongPress, isBookmarked, DEFAULT_COLLECTION, onProfilePress }) => (
     <View style={[styles.postContainer, { backgroundColor: themeColors.card }]}>
       {/* Post Header - User info and more options */}
       <View style={styles.postHeader}>
-        <View style={styles.userInfo}>
-          <Image source={imageMap[post.avatar]} style={styles.avatar} />
+        <TouchableOpacity style={styles.userInfo} onPress={() => onProfilePress(post)}>
+          <Image source={imageMap[post.avatar] ? imageMap[post.avatar] : require('../../assets/images/Commenter1.jpg')} style={styles.avatar} />
           <View style={styles.userDetails}>
             <Text style={[styles.username, { color: themeColors.text }]}>{post.user}</Text>
             <Text style={[styles.postTime, { color: themeColors.textSecondary }]}>{getRelativeTime(post.timestamp)}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.moreButton} onPress={() => onMore(post)}>
           <Feather name="more-horizontal" size={20} color={themeColors.textSecondary} />
         </TouchableOpacity>
@@ -85,56 +112,42 @@ const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAwar
         )}
       </View>
 
-      {/* Post Actions - Like, dislike, comment, award, share, bookmark buttons */}
+      {/* Divider above actions */}
+      <View style={{ height: 1, backgroundColor: themeColors.border, marginVertical: 8 }} />
+
+      {/* Post Actions - Like, dislike, comment, share, bookmark buttons */}
       <View style={styles.postActions}>
         <View style={styles.actionGroup}>
           {/* Like Button */}
           <TouchableOpacity style={styles.actionButton} onPress={() => onLike(post.id)}>
             <AntDesign 
-              name={post.liked ? 'heart' : 'hearto'} 
-              size={22} 
-              color={post.liked ? '#e74c3c' : themeColors.textSecondary} 
+              name="arrowup"
+              size={22}
+              color={post.liked ? '#2E45A3' : themeColors.textSecondary}
             />
-            <Text style={[styles.actionText, { color: post.liked ? '#e74c3c' : themeColors.textSecondary }]}>
-              {formatLikes(post.likes)}
+            <Text style={[styles.actionText, { color: post.liked ? '#2E45A3' : themeColors.textSecondary }]}>
+              {formatCount(post.likes)}
             </Text>
           </TouchableOpacity>
-          
-          {/* Dislike Button - Uses layered heartbroken icon for outlined/solid effect */}
+          {/* Dislike Button */}
           <TouchableOpacity style={styles.actionButton} onPress={() => onDislike(post.id)}>
-            <View style={{ position: 'relative' }}>
-              <MaterialIcons 
-                name="heart-broken" 
-                size={24} 
-                color={themeColors.textSecondary} 
-                style={{ opacity: 0.3 }}
-              />
-              {post.disliked && (
-                <MaterialIcons 
-                  name="heart-broken" 
-                  size={24} 
-                  color="#e74c3c" 
-                  style={{ position: 'absolute', top: 0, left: 0 }}
-                />
-              )}
-            </View>
+            <AntDesign
+              name="arrowdown"
+              size={22}
+              color={post.disliked ? '#E74C3C' : themeColors.textSecondary}
+            />
           </TouchableOpacity>
-          
           {/* Comment Button */}
           <TouchableOpacity style={styles.actionButton} onPress={() => onComment(post.id)}>
             <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
-            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{post.comments}</Text>
+            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatCount(post.comments)}</Text>
           </TouchableOpacity>
         </View>
-        
         <View style={styles.actionGroup}>
-          {/* Award Button - Reddit-style award system */}
-          <TouchableOpacity style={styles.actionButton} onPress={() => onAward(post.id)}>
-            <FontAwesome5 name="award" size={20} color={post.awarded ? '#FFD700' : themeColors.textSecondary} />
-          </TouchableOpacity>
           {/* Share Button */}
           <TouchableOpacity style={styles.actionButton} onPress={() => onShare(post.id)}>
             <Feather name="share-2" size={20} color={themeColors.textSecondary} />
+            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatCount(post.shares)}</Text>
           </TouchableOpacity>
           {/* Save/Bookmark Button */}
           <TouchableOpacity
@@ -142,7 +155,11 @@ const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAwar
             onPress={() => onSave(post.id)}
             onLongPress={() => onBookmarkLongPress(post.id)}
           >
-            <Feather name={post.saved ? 'bookmark' : 'bookmark'} size={20} color={post.saved ? '#2E45A3' : themeColors.textSecondary} />
+            {isBookmarked(post.id, DEFAULT_COLLECTION) ? (
+              <FontAwesome name="bookmark" size={20} color={themeColors.accent} />
+            ) : (
+              <Feather name="bookmark" size={20} color={themeColors.textSecondary} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -184,18 +201,54 @@ const TrendingCard = ({ item }) => (
     </ImageBackground>
   );
 
+// Trending Bar Component
+const TrendingBar = ({ themeColors }) => (
+  <View
+    style={[
+      styles.trendingBar,
+      { backgroundColor: themeColors.background, borderBottomColor: themeColors.border }
+    ]}
+  >
+    <Ionicons name="flame" size={18} color="#FF4500" style={{ marginRight: 6 }} />
+    <Text style={[styles.trendingBarText, { color: themeColors.text, fontWeight: 'bold' }]}>
+      Trending Today
+    </Text>
+  </View>
+);
+
+// Trending Stories Carousel
+const TrendingStories = ({ stories, themeColors, onStoryPress }) => (
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    style={[styles.trendingStoriesContainer, { backgroundColor: themeColors.background, borderBottomColor: themeColors.border }]}
+    contentContainerStyle={{ paddingHorizontal: 8 }}
+  >
+    {stories.map((story, idx) => (
+      <TouchableOpacity
+        key={idx}
+        style={styles.trendingStoryCard}
+        onPress={() => onStoryPress(story)}
+        activeOpacity={0.8}
+      >
+        <Image
+          source={story.image}
+          style={styles.trendingStoryImage}
+          resizeMode="cover"
+        />
+        <Text style={[styles.trendingStoryTitle, { color: themeColors.text }]} numberOfLines={2}>
+          {story.title}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </ScrollView>
+);
+
+
 // Main Popular Screen Component
 const PopularScreen = () => {
     // State management for posts and UI
-    const [posts, setPosts] = useState(
-      data.posts.map(p => ({
-        ...p,
-        liked: false,
-        disliked: false,
-        awarded: false,
-        timestamp: getRandomRecentTimestamp(),
-      }))
-    );
+    const [selectedCategory, setSelectedCategory] = useState('all');
     const [menuOpen, setMenuOpen] = useState(false);
     const [profileModalVisible, setProfileModalVisible] = useState(false);
     const [lastTabPath, setLastTabPath] = useState(null);
@@ -244,16 +297,12 @@ const PopularScreen = () => {
     const pathname = usePathname();
     const { themeColors } = useTheme();
     const { bookmarks, toggleBookmark, isBookmarked, collections, DEFAULT_COLLECTION } = useBookmarks();
+    const { posts } = usePosts();
 
-    // Filter posts by search text
-    const filteredPosts = searchText.trim() === '' ? posts : posts.filter(post => {
-      const q = searchText.toLowerCase();
-      return (
-        post.title.toLowerCase().includes(q) ||
-        post.user.toLowerCase().includes(q) ||
-        (post.content && post.content.toLowerCase().includes(q))
-      );
-    });
+    // Filter and sort posts for Popular feed
+    const filteredPosts = posts
+      .filter(post => post.likes >= 10)
+      .sort((a, b) => b.likes - a.likes);
 
     // Trending topics data for the horizontal scroll section
     const trendingTopics = [
@@ -373,6 +422,22 @@ const PopularScreen = () => {
       setMoreMenuVisible(true);
     };
 
+    const handleTrendingStoryPress = (story) => {
+      // You can navigate, open a modal, or just show an alert for now
+      alert(`You tapped: ${story.title}`);
+    };
+
+    const handleProfilePress = (post) => {
+      const userPosts = posts.filter(p => p.user === post.user);
+      router.navigate('profile', {
+        user: {
+          avatar: post.avatar,
+          user: post.user,
+          posts: userPosts,
+        }
+      });
+    };
+
     return (
         <View style={[styles.container, { backgroundColor: themeColors.background }] }>
             <Stack.Screen options={{ headerShown: false }} />
@@ -402,6 +467,7 @@ const PopularScreen = () => {
             {!searchOpen && (
               <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} onProfilePress={() => { setLastTabPath(pathname); setProfileModalVisible(true); }} onSearchPress={handleSearchIcon} />
             )}
+            
             <PopupMenu visible={menuOpen} router={router} />
             <ProfileModal visible={profileModalVisible} onClose={() => setProfileModalVisible(false)} onLogout={() => { setProfileModalVisible(false); if (lastTabPath) router.replace(lastTabPath); }} lastTabPath={lastTabPath} />
             
@@ -456,7 +522,7 @@ const PopularScreen = () => {
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <Post 
-                        post={{...item, saved: isBookmarked(item.id, DEFAULT_COLLECTION)}}
+                        post={item}
                         onLike={handleLike} 
                         onDislike={handleDislike} 
                         onComment={handleComment}
@@ -464,14 +530,26 @@ const PopularScreen = () => {
                         onSave={handleSave}
                         onAward={handleAward}
                         onShare={handleShare}
+                        themeColors={themeColors}
                         onMore={handleMorePress}
                         onBookmarkLongPress={handleBookmarkLongPress}
-                        themeColors={themeColors}
                         isBookmarked={isBookmarked}
+                        DEFAULT_COLLECTION={DEFAULT_COLLECTION}
+                        onProfilePress={handleProfilePress}
                     />
                 )}
                 ItemSeparatorComponent={() => <View style={{height: 8}} />}
                 contentContainerStyle={styles.postsList}
+                ListHeaderComponent={() => (
+                  <View>
+                    <TrendingBar themeColors={themeColors} />
+                    <TrendingStories
+                      stories={trendingStoriesData}
+                      themeColors={themeColors}
+                      onStoryPress={handleTrendingStoryPress}
+                    />
+                  </View>
+                )}
             />
         </View>
     );
@@ -543,19 +621,18 @@ const styles = StyleSheet.create({
         textShadowRadius: 2,
     },
     postContainer: {
-        backgroundColor: '#fff',
-        marginBottom: 8,
+        marginBottom: 10,
         borderRadius: 8,
         marginHorizontal: 8,
-        padding: 16,
+        padding: 12,
         ...Platform.select({
             web: {
-                boxShadow: '0px 1px 3px rgba(0,0,0,0.1)',
+                boxShadow: '0px 2px 8px rgba(0,0,0,0.06)',
             },
             default: {
                 shadowColor: '#000',
-                shadowOpacity: 0.1,
-                shadowRadius: 3,
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
                 elevation: 2,
             },
         }),
@@ -564,7 +641,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     userInfo: {
         flexDirection: 'row',
@@ -572,10 +649,10 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     avatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        marginRight: 12,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        marginRight: 8,
     },
     userDetails: {
         flex: 1,
@@ -593,18 +670,20 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     postContent: {
-        marginBottom: 12,
+        marginBottom: 8,
     },
     postTitle: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '500',
-        lineHeight: 22,
-        marginBottom: 12,
+        lineHeight: 20,
+        marginBottom: 8,
     },
     postImage: {
         width: '100%',
-        height: 200,
+        height: 180,
         borderRadius: 8,
+        marginTop: 6,
+        marginBottom: 2,
         backgroundColor: '#f0f0f0',
     },
     postActions: {
@@ -622,14 +701,14 @@ const styles = StyleSheet.create({
     actionButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 20,
-        paddingVertical: 4,
-        paddingHorizontal: 8,
+        marginRight: 12,
+        paddingVertical: 2,
+        paddingHorizontal: 4,
         borderRadius: 4,
     },
     actionText: {
-        marginLeft: 6,
-        fontSize: 14,
+        marginLeft: 4,
+        fontSize: 13,
         fontWeight: '500',
     },
     saveButton: {
@@ -637,6 +716,65 @@ const styles = StyleSheet.create({
     },
     postsList: {
         paddingHorizontal: 16,
+    },
+    trendingBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 24,
+        minHeight: 60,
+        borderBottomWidth: 0.5,
+    },
+    trendingBarText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        letterSpacing: 0.2,
+    },
+    trendingStoriesContainer: {
+        paddingVertical: 16,
+        borderBottomWidth: 0.5,
+        minHeight: 140,
+    },
+    trendingStoryCard: {
+        width: 160,
+        marginRight: 18,
+        alignItems: 'center',
+    },
+    trendingStoryImage: {
+        width: 150,
+        height: 80,
+        borderRadius: 10,
+        marginBottom: 8,
+        backgroundColor: '#eee',
+    },
+    trendingStoryTitle: {
+        fontSize: 14,
+        textAlign: 'center',
+        fontWeight: '600',
+        color: '#222',
+        maxWidth: 140,
+    },
+    redditAvatarContainer: {
+        width: 110,
+        height: 110,
+        borderRadius: 55,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        marginTop: 8,
+        marginBottom: 8,
+    },
+    redditAvatar: {
+        width: 90,
+        height: 90,
+    },
+    cameraBadge: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        backgroundColor: '#4CAF50',
+        borderRadius: 15,
+        padding: 2,
     },
 });
 
