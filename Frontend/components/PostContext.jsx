@@ -1,28 +1,43 @@
-import React, { createContext, useContext, useState } from 'react';
-import data from '../app/(tabs)/data.json';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { fetchPosts } from '../utils/posts';
+import { getAuthToken } from '../utils/auth';
 
 const PostContext = createContext();
 
 export function PostProvider({ children }) {
-  // Initialize with demo posts
-  const [posts, setPosts] = useState(
-    data.posts.map((p, i) => {
-      let ts = p.timestamp ? new Date(p.timestamp) : new Date();
-      if (isNaN(ts.getTime())) {
-        // If invalid, use now minus i*10 minutes
-        ts = new Date(Date.now() - i * 10 * 60 * 1000);
-      }
-      return {
-        ...p,
-        timestamp: ts,
-        liked: false,
-        disliked: false,
-        awarded: false,
-      };
-    })
-  );
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Add a new post
+  // Fetch posts from backend
+  const refreshPosts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getAuthToken();
+      const data = await fetchPosts(token);
+      // Optionally massage data here if needed
+      setPosts(
+        data.map((p, i) => ({
+          ...p,
+          timestamp: p.timestamp ? new Date(p.timestamp) : new Date(),
+          liked: false,
+          disliked: false,
+          awarded: false,
+        }))
+      );
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshPosts();
+  }, [refreshPosts]);
+
+  // Add a new post locally (optional, for optimistic update)
   const addPost = (post) => {
     setPosts(prev => [
       {
@@ -41,7 +56,7 @@ export function PostProvider({ children }) {
   };
 
   return (
-    <PostContext.Provider value={{ posts, addPost }}>
+    <PostContext.Provider value={{ posts, addPost, refreshPosts, loading, error }}>
       {children}
     </PostContext.Provider>
   );
@@ -49,4 +64,4 @@ export function PostProvider({ children }) {
 
 export function usePosts() {
   return useContext(PostContext);
-} 
+}

@@ -99,19 +99,29 @@ const Create = () => {
     setIsPosting(true);
     // Use the logged-in user's avatar
     const avatar = profile.avatar || 'commenter1.jpg';
-    addPost({
-      title: title.trim(),
-      content: body.trim(),
-      user: profile.username || 'u/CurrentUser',
-      avatar,
-      community: selectedCommunity,
-      image: selectedImages[0] ? selectedImages[0] : undefined,
-      video: selectedVideo,
-      poll: showPoll ? { question: pollTitle, options: pollOptions, duration: pollDuration } : undefined,
-      link: showUrlInput ? { url, title: urlTitle } : undefined,
-      timestamp: new Date(),
-    });
-    setTimeout(() => {
+    try {
+      // Dynamically import axios and auth util
+      const axios = (await import('axios')).default;
+      const { getAuthToken } = await import('../../utils/auth');
+      const token = await getAuthToken();
+
+      const payload = {
+        postName: title.trim(),
+        url: showUrlInput ? url.trim() : undefined,
+        description: body.trim(),
+      };
+
+      const response = await axios.post(
+        'http://localhost:8082/api/posts', // Change to your backend URL if needed
+        payload,
+        {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
       setIsPosting(false);
       Alert.alert(
         'Success!',
@@ -139,7 +149,13 @@ const Create = () => {
           }
         ]
       );
-    }, 1500);
+    } catch (error) {
+      setIsPosting(false);
+      Alert.alert(
+        'Error',
+        error?.response?.data?.message || 'Failed to create post. Please try again.'
+      );
+    }
   };
 
   const handleSelectCommunity = () => {

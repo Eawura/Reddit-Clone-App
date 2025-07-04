@@ -263,36 +263,10 @@ const PopularScreen = () => {
     const [collectionModalVisible, setCollectionModalVisible] = useState(false);
     const [collectionModalPost, setCollectionModalPost] = useState(null);
     
-    // Sample comments data for the comment modal
-    const [comments, setComments] = useState([
-      {
-        id: 1,
-        username: 'u/PopularUser1',
-        avatar: 'commenter4.jpg',
-        text: 'This is trending for a reason! Great content.',
-        time: '1h ago',
-        likes: 15,
-        liked: false
-      },
-      {
-        id: 2,
-        username: 'u/TrendingFan',
-        avatar: 'commenter5.jpg',
-        text: 'Love seeing this kind of content on the front page.',
-        time: '45m ago',
-        likes: 12,
-        liked: false
-      },
-      {
-        id: 3,
-        username: 'u/CommunityMember',
-        avatar: 'commenter6.jpg',
-        text: 'This deserves all the upvotes it\'s getting!',
-        time: '30m ago',
-        likes: 8,
-        liked: false
-      }
-    ]);
+    // Comments state, loading, and error for backend integration
+    const [comments, setComments] = useState([]);
+    const [commentsLoading, setCommentsLoading] = useState(false);
+    const [commentsError, setCommentsError] = useState(null);
     const router = useRouter();
     const pathname = usePathname();
     const { themeColors } = useTheme();
@@ -313,60 +287,139 @@ const PopularScreen = () => {
     ];
 
     // Handle like button press - toggles like state and updates count
-    const handleLike = (id) => {
-        setPosts(posts => posts.map(post => {
-          if (post.id === id) {
-            if (post.liked) {
-              return { ...post, liked: false, likes: post.likes - 1 };
-            } else {
-              return { ...post, liked: true, disliked: false, likes: post.likes + 1 };
-            }
-          }
-          return post;
-        }));
-    };
-
-    // Handle dislike button press - decreases likes and toggles dislike state
-    const handleDislike = (id) => {
-        setPosts(posts => posts.map(post => {
-          if (post.id === id) {
-            if (post.disliked) {
-              return { ...post, disliked: false };
-            } else {
-              return { ...post, disliked: true, liked: false, likes: post.likes - 1 };
-            }
-          }
-          return post;
-        }));
-    };
-
-    // Handle comment button press - opens comment modal
-    const handleComment = (id) => {
-      const post = posts.find(p => p.id === id);
-      setSelectedPost(post);
-      setCommentModalVisible(true);
-    };
-
-    // Handle adding a new comment
-    const handleAddComment = (text, replyingTo = null) => {
-      const newComment = {
-        id: Date.now(),
-        username: 'u/CurrentUser',
-        text: text,
-        time: 'Just now',
-        likes: 0,
-        liked: false,
-        replyingTo: replyingTo
-      };
-      setComments(prev => [newComment, ...prev]);
-      
-      // Update post comment count
+    const handleLike = async (id) => {
+      // Optimistically update UI
       setPosts(posts => posts.map(post => {
-        if (post.id === selectedPost.id) {
-          return { ...post, comments: post.comments + 1 };
+        if (post.id === id) {
+          if (post.liked) {
+            return { ...post, liked: false, likes: post.likes - 1 };
+          } else {
+            return { ...post, liked: true, disliked: false, likes: post.likes + 1 };
+          }
         }
         return post;
       }));
+      // Backend call
+      try {
+        const axios = (await import('axios')).default;
+        const { getAuthToken } = await import('../../utils/auth');
+        const token = await getAuthToken();
+        await axios.post(
+          'http://localhost:8082/api/votes',
+          { postId: id, voteType: 'UPVOTE' },
+          {
+            headers: {
+              Authorization: token ? `Bearer ${token}` : '',
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      } catch (error) {
+        console.error('Failed to upvote:', error?.response?.data || error);
+        // Optionally: revert optimistic update or show error
+      }
+    };
+
+    // Handle dislike button press - decreases likes and toggles dislike state
+    const handleDislike = async (id) => {
+      // Optimistically update UI
+      setPosts(posts => posts.map(post => {
+        if (post.id === id) {
+          if (post.disliked) {
+            return { ...post, disliked: false };
+          } else {
+            return { ...post, disliked: true, liked: false, likes: post.likes - 1 };
+          }
+        }
+        return post;
+      }));
+      // Backend call
+      try {
+        const axios = (await import('axios')).default;
+        const { getAuthToken } = await import('../../utils/auth');
+        const token = await getAuthToken();
+        await axios.post(
+          'http://localhost:8082/api/votes',
+          { postId: id, voteType: 'DOWNVOTE' },
+          {
+            headers: {
+              Authorization: token ? `Bearer ${token}` : '',
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      } catch (error) {
+        console.error('Failed to downvote:', error?.response?.data || error);
+        // Optionally: revert optimistic update or show error
+      }
+    };
+
+    // Handle comment button press - fetch comments and open modal
+    const handleComment = async (id) => {
+      const post = posts.find(p => p.id === id);
+      setSelectedPost(post);
+      setComments([]);
+      setCommentsError(null);
+      setCommentsLoading(true);
+      setCommentModalVisible(true);
+      try {
+        const { fetchComments } = await import('../../utils/comments');
+        const backendComments = await fetchComments(post.id);
+        // Map backend comments to UI format if needed
+        setComments(backendComments.map(c => ({
+          id: c.id,
+          username: c.userName,
+          avatar: c.avatar || 'commenter1.jpg', // fallback
+          text: c.content,
+          time: new Date(c.createdAt).toLocaleString(), // or use relative time
+          likes: c.likes || 0,
+          liked: false // TODO: backend support
+        })));
+        setCommentsError(null);
+      } catch (err) {
+        setCommentsError('Failed to load comments.');
+      } finally {
+        setCommentsLoading(false);
+      }
+    };
+
+    // Handle adding a new comment (post to backend)
+    const handleAddComment = async (text, replyingTo = null) => {
+      if (!selectedPost) return;
+      const userName = 'u/CurrentUser'; // TODO: Replace with real user
+      const tempId = Date.now();
+      const optimisticComment = {
+        id: tempId,
+        username: userName,
+        avatar: 'commenter1.jpg',
+        text,
+        time: 'Just now',
+        likes: 0,
+        liked: false,
+        replyingTo
+      };
+      setComments(prev => [optimisticComment, ...prev]);
+      setCommentsError(null);
+      try {
+        const { postComment } = await import('../../utils/comments');
+        await postComment({
+          postId: selectedPost.id,
+          content: text,
+          userName,
+          parentCommentId: replyingTo
+        });
+        // Optionally: refetch comments or update count
+        setPosts(posts => posts.map(post => {
+          if (post.id === selectedPost.id) {
+            return { ...post, comments: post.comments + 1 };
+          }
+          return post;
+        }));
+      } catch (err) {
+        setCommentsError('Failed to post comment.');
+        // Remove optimistic comment
+        setComments(prev => prev.filter(c => c.id !== tempId));
+      }
     };
 
     // Handle liking a comment
@@ -482,6 +535,9 @@ const PopularScreen = () => {
                 onLikeComment={handleLikeComment}
                 onReplyComment={() => {}}
                 themeColors={themeColors}
+                loading={commentsLoading}
+                error={commentsError}
+                onRetry={() => handleComment(selectedPost.id)}
               />
             )}
 
