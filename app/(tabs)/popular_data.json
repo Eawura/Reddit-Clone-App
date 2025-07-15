@@ -55,6 +55,44 @@
       "shares": 9,
       "avatar": "https://randomuser.me/api/portraits/women/5.jpg"
     }
+  ],
+  "trendingStories": [
+    {
+      "id": "1",
+      "title": "Cedi Appreciation",
+      "image": "myStory1.jpg",
+      "description": "Discover the fascinating world of cell biology and why every cell matters in our daily lives."
+    },
+    {
+      "id": "2",
+      "title": "World Cup Qualifiers",
+      "image": "myStory2.jpg",
+      "description": "Updates and stories from the up coming World Cup Qualifiers around the globe"
+    },
+    {
+      "id": "3",
+      "title": "Chat Summit Details",
+      "image": "myStory3.jpg",
+      "description": "Highlights from the recent Chat Summit, featuring top speakers and new tech."
+    },
+    {
+      "id": "4",
+      "title": "NBA Playoffs",
+      "image": "myStory4.jpg",
+      "description": "Catch up on the latest NBA Playoffs action, scores, and standout performances."
+    },
+    {
+      "id": "5",
+      "title": "Tech Innovations",
+      "image": "myStory5.jpg",
+      "description": "Explore the newest innovations in technology that are shaping our future."
+    },
+    {
+      "id": "6",
+      "title": "Isreal Wars",
+      "image": "myStory6.jpg",
+      "description": "Updates and stories from the ongoing Isreal Wars."
+    }
   ]
   
   

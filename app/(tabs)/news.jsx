@@ -1,15 +1,14 @@
-import { AntDesign, Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Stack, usePathname, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { FlatList, Image, Platform, RefreshControl, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, FlatList, Image, Platform, RefreshControl, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useBookmarks } from '../../components/BookmarkContext';
 import CollectionModal from '../../components/CollectionModal';
 import CommentModal from '../../components/CommentModal';
 import ImageModal from '../../components/ImageModal';
 import MoreMenu from '../../components/MoreMenu';
 import PopupMenu from '../../components/PopupMenu';
-import { usePosts } from '../../components/PostContext';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
 import { getRelativeTime } from '../../utils/timeUtils';
@@ -39,6 +38,9 @@ const imageMap = {
   'daniel-radcliffes-acting-v0-zhahfgw6fj5f1.webp': require('../../assets/images/daniel-radcliffes-acting-v0-zhahfgw6fj5f1.webp'),
   'danny-1.webp': require('../../assets/images/danny-1.webp'),
   // Commenter profile images
+  'BBC.jpg': require('../../assets/images/BBC.jpg'),
+  'science.jpg': require('../../assets/images/science.jpg'),
+  'ESPN.jpg': require('../../assets/images/ESPN.jpg'),
   'commenter1.jpg': require('../../assets/images/Commenter1.jpg'),
   'commenter2.jpg': require('../../assets/images/Commenter2.jpg'),
   'commenter3.jpg': require('../../assets/images/Commenter3.jpg'),
@@ -49,6 +51,30 @@ const imageMap = {
   'commenter8.jpg': require('../../assets/images/Commenter8.jpg'),
   'commenter9.jpg': require('../../assets/images/Commenter9.jpg'),
   'commenter10.jpg': require('../../assets/images/Commenter10.jpg'),
+  'Pulse-on-Global-Health.jpg': require('../../assets/images/Pulse-on-Global-Health.jpg'),
+  'ai-breakthrough-tech.jpg': require('../../assets/images/ai-breakthrough-tech.jpg'),
+  'underdog-championship-sports.jpg': require('../../assets/images/underdog-championship-sports.jpg'),
+  'exercise-study-science.jpg': require('../../assets/images/exercise-study-science.jpg'),
+  'director-blockbuster-entertainment.jpg': require('../../assets/images/director-blockbuster-entertainment.jpg'),
+  'global-markets-business.jpg': require('../../assets/images/global-markets-business.jpg'),
+  'climate-legislation-politics.jpg': require('../../assets/images/climate-legislation-politics.jpg'),
+  'cancer-treatment-health.jpg': require('../../assets/images/cancer-treatment-health.jpg'),
+  'quantum-computing-technology.jpg': require('../../assets/images/quantum-computing-technology.jpg'),
+  // Add a default fallback image to imageMap
+  'image-fallback.jpg': require('../../assets/images/Random.jpg'),
+  'Cole Palmer.jpg': require('../../assets/images/Cole Palmer.jpg'),
+  'CWC.jpg': require('../../assets/images/CWC.jpg'),
+};
+
+// Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)
+const formatCount = (num) => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return num;
 };
 
 // Header Component - App logo and navigation icons
@@ -99,116 +125,61 @@ const CategoryButton = ({ title, active, onPress }) => {
   );
 };
 
-// Main Post Component - Displays individual posts in the news feed
-const Post = ({ post, onLike, onDislike, onComment, themeColors }) => (
-  <View style={[styles.postContainer, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
-    {/* Post Header - User info and more options */}
-    <View style={styles.postHeader}>
-      <View style={styles.userInfo}>
-        <Image source={imageMap[post.avatar] ? imageMap[post.avatar] : require('../../assets/images/Commenter1.jpg')} style={styles.avatar} />
-        <View style={styles.userDetails}>
-          <Text style={[styles.username, { color: themeColors.text }]}>{post.user}</Text>
-          <Text style={[styles.postTime, { color: themeColors.textSecondary }]}>{getRelativeTime(post.time)}</Text>
-        </View>
-      </View>
-      <TouchableOpacity style={styles.moreButton}>
-        <Feather name="more-horizontal" size={20} color={themeColors.textSecondary} />
-      </TouchableOpacity>
-    </View>
-
-    {/* Post Content - Title and image */}
-    <View style={styles.postContent}>
-      <Text style={[styles.postTitle, { color: themeColors.text }]}>{post.title}</Text>
-      {post.image && (
-        <Image 
-          source={imageMap[post.image]} 
-          style={styles.postImage}
-          resizeMode="cover"
-        />
-      )}
-    </View>
-
-    {/* Post Actions - Like, dislike, comment, share, bookmark buttons */}
-    <View style={styles.postActions}>
-      <View style={styles.actionGroup}>
-        {/* Like Button */}
-        <TouchableOpacity style={styles.actionButton} onPress={() => onLike(post.id)}>
-          <AntDesign 
-            name={post.liked ? 'heart' : 'hearto'} 
-            size={22} 
-            color={post.liked ? '#e74c3c' : themeColors.textSecondary} 
-          />
-          <Text style={[styles.actionText, { color: post.liked ? '#e74c3c' : themeColors.textSecondary }]}>
-            {post.likes}
-          </Text>
-        </TouchableOpacity>
-        {/* Dislike Button */}
-        <TouchableOpacity style={styles.actionButton} onPress={() => onDislike(post.id)}>
-          <View style={{ position: 'relative' }}>
-            <MaterialIcons 
-              name="heart-broken" 
-              size={24} 
-              color={themeColors.textSecondary} 
-              style={{ opacity: 0.3 }}
-            />
-            {post.disliked && (
-              <MaterialIcons 
-                name="heart-broken" 
-                size={24} 
-                color="#e74c3c" 
-                style={{ position: 'absolute', top: 0, left: 0 }}
-              />
-            )}
-          </View>
-        </TouchableOpacity>
-        {/* Comment Button */}
-        <TouchableOpacity style={styles.actionButton} onPress={() => onComment(post.id)}>
-          <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
-          <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{post.comments}</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.actionGroup}>
-        {/* Share Button */}
-        <TouchableOpacity style={styles.actionButton}>
-          <Feather name="share-2" size={20} color={themeColors.textSecondary} />
-        </TouchableOpacity>
-        {/* Save/Bookmark Button */}
-        <TouchableOpacity style={styles.saveButton}>
-          {post.saved ? (
-            <FontAwesome name="bookmark" size={20} color={themeColors.accent} />
-          ) : (
-          <Feather name="bookmark" size={20} color={themeColors.textSecondary} />
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-);
-
-// Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)
-const formatCount = (num) => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-  }
-  return num;
-};
-
 // News Card Component - Displays news articles with source attribution
-const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress, onSave, onAward, themeColors, onMore, isBookmarked, DEFAULT_COLLECTION, onProfilePress }) => (
-  <View style={[styles.newsCard, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
+const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress, onSave, onAward, themeColors, onMore, isBookmarked, DEFAULT_COLLECTION, onProfilePress }) => {
+  // Debug logs for avatar and image lookups
+  console.log('DEBUG: News ID', news.id, 'avatar lookup:', news.avatar, '->', imageMap[news.avatar]);
+  console.log('DEBUG: News ID', news.id, 'image lookup:', news.image, '->', imageMap[news.image]);
+  const [imgError, setImgError] = useState(false);
+  const upvoteScale = useRef(new Animated.Value(1)).current;
+  const bookmarkScale = useRef(new Animated.Value(1)).current;
+
+  const animateIcon = (animatedValue) => {
+    Animated.sequence([
+      Animated.timing(animatedValue, { toValue: 1.3, duration: 100, useNativeDriver: true }),
+      Animated.timing(animatedValue, { toValue: 1, duration: 100, useNativeDriver: true })
+    ]).start();
+  };
+
+  const handleUpvote = () => {
+    animateIcon(upvoteScale);
+    onUpvote(news.id);
+  };
+  const handleBookmark = () => {
+    animateIcon(bookmarkScale);
+    onSave(news.id);
+  };
+
+  return (
+    <View style={[styles.newsCard, { backgroundColor: themeColors.card, borderColor: themeColors.border, shadowColor: themeColors.shadow || '#000' }]}>  
+      {/* Category Badge */}
+      {news.category && (
+        <View style={[styles.categoryBadge, { backgroundColor: themeColors.accent + '22', borderColor: themeColors.accent }]}> 
+          <Text style={[styles.categoryBadgeText, { color: themeColors.accent }]}>{news.category}</Text>
+        </View>
+      )}
     {/* News Header - Source info and timestamp */}
     <View style={styles.newsHeader}>
-      <TouchableOpacity style={styles.newsUserInfo} onPress={() => onProfilePress(news)}>
-        <Image source={imageMap[news.avatar]} style={styles.newsAvatar} />
+        <TouchableOpacity
+          style={styles.newsUserInfo}
+          onPress={() => onProfilePress(news)}
+          accessible accessibilityLabel={`View profile for ${news.user}`}
+        >
+          <Image
+            source={imageMap[news.avatar] ? imageMap[news.avatar] : require('../../assets/images/Commenter1.jpg')}
+            style={styles.newsAvatar}
+            accessible accessibilityLabel={`Avatar for ${news.user}`}
+          />
         <View style={styles.newsUserDetails}>
-          <Text style={[styles.newsUsername, { color: themeColors.text }]}>{news.user}</Text>
+            <Text style={[styles.newsUsername, { color: themeColors.text }]}>n/{news.user}</Text>
           <Text style={[styles.newsTime, { color: themeColors.textSecondary }]}>{getRelativeTime(news.timestamp)}</Text>
         </View>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.moreButton} onPress={() => onMore(news)}>
+        <TouchableOpacity
+          style={styles.moreButton}
+          onPress={() => onMore(news)}
+          accessible accessibilityLabel="Show more options"
+        >
         <Feather name="more-horizontal" size={20} color={themeColors.textSecondary} />
       </TouchableOpacity>
     </View>
@@ -220,11 +191,16 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
         <Text style={[styles.newsExcerpt, { color: themeColors.textSecondary }]}>{news.excerpt}</Text>
       )}
       {news.image && (
-        <TouchableOpacity onPress={() => onImagePress(news.image)}>
+          <TouchableOpacity
+            onPress={() => onImagePress(news.image)}
+            accessible accessibilityLabel={`View image for ${news.title}`}
+          >
           <Image 
-            source={imageMap[news.image]} 
+              source={imgError ? imageMap['image-fallback.jpg'] : imageMap[news.image] ? imageMap[news.image] : require('../../assets/images/Random.jpg')}
             style={styles.newsImage}
             resizeMode="cover"
+              onError={() => setImgError(true)}
+              accessible accessibilityLabel={news.title}
           />
         </TouchableOpacity>
       )}
@@ -233,46 +209,212 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
     {/* News Actions - Upvote, downvote, comment, share, bookmark buttons */}
     <View style={styles.newsActions}>
       <View style={styles.newsActionGroup}>
-        <TouchableOpacity style={styles.newsActionButton} onPress={() => onUpvote(news.id)}>
+          <TouchableOpacity
+            style={styles.newsActionButton}
+            onPress={handleUpvote}
+            accessible accessibilityLabel={news.upvoted ? 'Remove upvote' : 'Upvote'}
+          >
+            <Animated.View style={{ transform: [{ scale: upvoteScale }] }}>
           <AntDesign 
             name={news.upvoted ? 'arrowup' : 'arrowup'} 
             size={20} 
-            color={news.upvoted ? '#FF4500' : themeColors.textSecondary} 
+                color={news.upvoted ? '#2E45A3' : themeColors.textSecondary}
           />
-          <Text style={[styles.newsActionText, { color: news.upvoted ? '#FF4500' : themeColors.textSecondary }]}> {formatCount(news.upvotes)} </Text>
+            </Animated.View>
+            <Text style={[styles.newsActionText, { color: news.upvoted ? '#2E45A3' : themeColors.textSecondary }]}> {formatCount(news.upvotes)} </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.newsActionButton} onPress={() => onDownvote(news.id)}>
+          <TouchableOpacity
+            style={styles.newsActionButton}
+            onPress={() => onDownvote(news.id)}
+            accessible accessibilityLabel={news.downvoted ? 'Remove downvote' : 'Downvote'}
+          >
           <AntDesign 
             name="arrowdown" 
-            size={20} 
-            color={news.downvoted ? '#7193FF' : themeColors.textSecondary} 
+              size={22}
+              color={news.downvoted ? '#E74C3C' : themeColors.textSecondary}
           />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.newsActionButton} onPress={() => onComment(news.id)}>
+          <TouchableOpacity
+            style={styles.newsActionButton}
+            onPress={() => onComment(news.id)}
+            accessible accessibilityLabel="Comment on news"
+          >
           <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
           <Text style={[styles.newsActionText, { color: themeColors.textSecondary }]}>{formatCount(news.comments)}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.newsActionGroup}>
-        <TouchableOpacity style={styles.newsActionButton} onPress={() => onShare(news.id)}>
+          <TouchableOpacity
+            style={styles.newsActionButton}
+            onPress={() => onShare(news.id)}
+            accessible accessibilityLabel="Share news"
+          >
           <Feather name="share-2" size={20} color={themeColors.textSecondary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.newsSaveButton} onPress={() => onSave(news.id)}>
+          <TouchableOpacity
+            style={styles.newsSaveButton}
+            onPress={handleBookmark}
+            accessible accessibilityLabel={isBookmarked(news.id, DEFAULT_COLLECTION) ? 'Remove bookmark' : 'Bookmark news'}
+          >
+            <Animated.View style={{ transform: [{ scale: bookmarkScale }] }}>
           {isBookmarked(news.id, DEFAULT_COLLECTION) ? (
             <FontAwesome name="bookmark" size={20} color={themeColors.accent} />
           ) : (
             <Feather name="bookmark" size={20} color={themeColors.textSecondary} />
           )}
+            </Animated.View>
         </TouchableOpacity>
       </View>
     </View>
+    </View>
+  );
+};
+
+// Add demo news data with categories at the top of the News component
+const demoNews = [
+  {
+    id: 'n1',
+    user: 'BBC News',
+    avatar: 'BBC.jpg',
+    title: 'Quantum Computing Milestone Achieved by Research Team (UPDATED)', // Updated title as a placeholder
+    excerpt: 'A major breakthrough in quantum computing could revolutionize technology as we know it.',
+    image: 'ai-breakthrough-tech.jpg',
+    category: 'Technology',
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    upvotes: 1234,
+    comments: 56,
+    upvoted: false,
+    downvoted: false,
+    saved: false,
+  },
+  {
+    id: 'n2',
+    user: 'ESPN',
+    avatar: 'ESPN.jpg',
+    title: 'Underdog Team Chelsea FC wins Club world cup in Stunning Upset',
+    excerpt: 'Fans celebrate as the underdog team clinches the title in a dramatic final match.',
+    image: 'underdog-championship-sports.jpg',
+    category: 'Sports',
+    timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
+    upvotes: 987,
+    comments: 34,
+    upvoted: false,
+    downvoted: false,
+    saved: false,
+  },
+  {
+    id: 'n3',
+    user: 'Science Daily',
+    avatar: 'science.jpg',
+    title: 'New Study Reveals Benefits of Daily Exercise',
+    excerpt: 'Researchers find that even moderate daily exercise can have significant health benefits.',
+    image: 'exercise-study-science.jpg',
+    category: 'Health',
+    timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
+    upvotes: 654,
+    comments: 21,
+    upvoted: false,
+    downvoted: false,
+    saved: false,
+  },
+  {
+    id: 'n4',
+    user: 'Variety',
+    avatar: 'commenter4.jpg',
+    title: 'Award-Winning Director Announces New Blockbuster',
+    excerpt: 'The acclaimed director teases fans with details of an upcoming film project.',
+    image: 'director-blockbuster-entertainment.jpg',
+    category: 'Entertainment',
+    timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
+    upvotes: 432,
+    comments: 12,
+    upvoted: false,
+    downvoted: false,
+    saved: false,
+  },
+  {
+    id: 'n5',
+    user: 'Bloomberg',
+    avatar: 'commenter5.jpg',
+    title: 'Global Markets Rally After Economic Report',
+    excerpt: 'Stock markets around the world surged following positive economic news.',
+    image: 'global-markets-business.jpg',
+    category: 'Business',
+    timestamp: new Date(Date.now() - 10 * 60 * 60 * 1000),
+    upvotes: 321,
+    comments: 8,
+    upvoted: false,
+    downvoted: false,
+    saved: false,
+  },
+  {
+    id: 'n6',
+    user: 'Reuters',
+    avatar: 'commenter6.jpg',
+    title: 'New Climate Legislation Passed by Parliament',
+    excerpt: 'Lawmakers have approved sweeping new measures to address climate change.',
+    image: 'climate-legislation-politics.jpg',
+    category: 'Politics',
+    timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
+    upvotes: 210,
+    comments: 5,
+    upvoted: false,
+    downvoted: false,
+    saved: false,
+  },
+  {
+    id: 'n7',
+    user: 'Healthline',
+    avatar: 'Pulse-on-Global-Health.jpg',
+    title: 'Breakthrough in Cancer Treatment Announced',
+    excerpt: 'A new therapy shows promise in treating certain types of cancer.',
+    image: 'cancer-treatment-health.jpg',
+    category: 'Health',
+    timestamp: new Date(Date.now() - 14 * 60 * 60 * 1000),
+    upvotes: 198,
+    comments: 3,
+    upvoted: false,
+    downvoted: false,
+    saved: false,
+  },
+  {
+    id: 'n8',
+    user: 'TechCrunch',
+    avatar: 'commenter8.jpg',
+    title: 'Quantum Computing: The Next Big Leap',
+    excerpt: 'Experts discuss the future of quantum computing and its potential impact.',
+    image: 'quantum-computing-technology.jpg',
+    category: 'Technology',
+    timestamp: new Date(Date.now() - 16 * 60 * 60 * 1000),
+    upvotes: 150,
+    comments: 2,
+    upvoted: false,
+    downvoted: false,
+    saved: false,
+  },
+];
+
+// Skeleton Loader Component
+const NewsCardSkeleton = ({ themeColors }) => (
+  <View style={[styles.newsCard, { backgroundColor: themeColors.card, borderColor: themeColors.border, opacity: 0.7 }]}>  
+    <View style={[styles.skeletonBadge, { backgroundColor: themeColors.accent + '22' }]} />
+    <View style={styles.skeletonHeader}>
+      <View style={[styles.skeletonAvatar, { backgroundColor: themeColors.border }]} />
+      <View style={styles.skeletonUserDetails}>
+        <View style={[styles.skeletonLine, { width: 80, backgroundColor: themeColors.border }]} />
+        <View style={[styles.skeletonLine, { width: 50, backgroundColor: themeColors.border, marginTop: 4 }]} />
+      </View>
+    </View>
+    <View style={[styles.skeletonLine, { width: '70%', height: 18, backgroundColor: themeColors.border, marginVertical: 12 }]} />
+    <View style={[styles.skeletonImage, { backgroundColor: themeColors.border }]} />
+    <View style={[styles.skeletonActions, { backgroundColor: themeColors.background }]} />
   </View>
 );
 
 // Main News Screen Component
 const News = () => {
   // State management for news and UI
-  const { posts } = usePosts();
+  const [newsList, setNewsList] = useState(demoNews);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [lastTabPath, setLastTabPath] = useState(null);
@@ -288,6 +430,13 @@ const News = () => {
   const [selectedMorePost, setSelectedMorePost] = useState(null);
   const [collectionModalVisible, setCollectionModalVisible] = useState(false);
   const [collectionModalPost, setCollectionModalPost] = useState(null);
+  // In News component, add loading state
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => setLoading(false), 1200); // Simulate loading
+    return () => clearTimeout(timer);
+  }, []);
   
   // Sample comments data for the comment modal
   const [comments, setComments] = useState([
@@ -340,7 +489,7 @@ const News = () => {
 
   // Handle upvote button press - increases upvotes and toggles upvote state
     const handleUpvote = (id) => {
-        setPosts(posts => posts.map(item => {
+        setNewsList(newsList => newsList.map(item => {
             if (item.id === id) {
         if (item.upvoted) {
           return { ...item, upvoted: false, upvotes: item.upvotes - 1 };
@@ -354,7 +503,7 @@ const News = () => {
 
   // Handle downvote button press - decreases upvotes and toggles downvote state
     const handleDownvote = (id) => {
-        setPosts(posts => posts.map(item => {
+        setNewsList(newsList => newsList.map(item => {
             if (item.id === id) {
         if (item.downvoted) {
           return { ...item, downvoted: false };
@@ -373,7 +522,7 @@ const News = () => {
 
   // Handle comment button press - opens comment modal
   const handleComment = (id) => {
-    const newsItem = posts.find(n => n.id === id);
+    const newsItem = newsList.find(n => n.id === id);
     setSelectedNews(newsItem);
     setCommentModalVisible(true);
   };
@@ -392,7 +541,7 @@ const News = () => {
     setComments(prev => [newComment, ...prev]);
     
     // Update news comment count
-    setPosts(posts => posts.map(item => {
+    setNewsList(newsList => newsList.map(item => {
       if (item.id === selectedNews.id) {
         return { ...item, comments: item.comments + 1 };
             }
@@ -417,12 +566,12 @@ const News = () => {
   // Handle share functionality
   const handleShare = async (id) => {
     try {
-      const newsItem = posts.find(n => n.id === id);
+      const newsItem = newsList.find(n => n.id === id);
       if (!newsItem) return;
 
       const shareContent = {
         title: newsItem.title,
-        message: `${newsItem.title}\n\n${newsItem.excerpt || ''}\n\nSource: ${newsItem.source}\n\nCheck out this news on Neoping!`,
+        message: `${newsItem.title}\n\n${newsItem.excerpt || ''}\n\nSource: ${newsItem.user}\n\nCheck out this news on Neoping!`,
         url: `https://neoping.app/news/${id}`, // In a real app, this would be the actual news URL
       };
 
@@ -451,12 +600,12 @@ const News = () => {
   };
 
   // Filter and sort posts for News feed
-  const filteredNews = posts
-    .filter(post => (post.category || '').toLowerCase() === 'news')
+  const filteredNews = newsList
+    .filter(item => selectedCategory === 'All' || item.category === selectedCategory)
     .filter(item => {
     const matchesSearch = searchText.trim() === '' || 
-      item.title.toLowerCase().includes(searchText.toLowerCase()) ||
-        (item.content && item.content.toLowerCase().includes(searchText.toLowerCase()));
+        (typeof item.title === 'string' && item.title.toLowerCase().includes(searchText.toLowerCase())) ||
+        (typeof item.excerpt === 'string' && item.excerpt.toLowerCase().includes(searchText.toLowerCase()));
       return matchesSearch;
     })
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -469,7 +618,7 @@ const News = () => {
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => {
-      setPosts(posts => posts.map(item => ({ ...item, upvoted: false, downvoted: false })));
+      setNewsList(newsList => newsList.map(item => ({ ...item, upvoted: false, downvoted: false })));
       setRefreshing(false);
     }, 1500);
   };
@@ -481,13 +630,13 @@ const News = () => {
   };
 
   const handleSave = (id) => {
-    const newsItem = posts.find(n => n.id === id);
+    const newsItem = newsList.find(n => n.id === id);
     if (newsItem) {
       toggleBookmark(newsItem, DEFAULT_COLLECTION);
     }
   };
   const handleAward = (id) => {
-    setPosts(posts => posts.map(item => item.id === id ? { ...item, awarded: !item.awarded } : item));
+    setNewsList(newsList => newsList.map(item => item.id === id ? { ...item, awarded: !item.awarded } : item));
   };
 
   const handleMorePress = (news) => {
@@ -497,7 +646,7 @@ const News = () => {
 
   // Handler for long-press (open collection modal)
   const handleBookmarkLongPress = (id) => {
-    const newsItem = posts.find(n => n.id === id);
+    const newsItem = newsList.find(n => n.id === id);
     if (newsItem) {
       setCollectionModalPost(newsItem);
       setCollectionModalVisible(true);
@@ -505,13 +654,19 @@ const News = () => {
   };
 
   const handleProfilePress = (news) => {
-    const userPosts = posts.filter(n => n.user === news.user);
-    router.navigate('profile', {
-      user: {
-        avatar: news.avatar,
+    // Find all news posts for this user
+    const userNewsPosts = demoNews.filter(n => n.user === news.user);
+    router.push({
+      pathname: '/profile',
+      params: {
+        user: JSON.stringify({
         user: news.user,
-        posts: userPosts,
-      }
+          avatar: news.avatar,
+          id: news.id,
+        }),
+        from: 'news',
+        newsPosts: JSON.stringify(userNewsPosts),
+      },
     });
   };
 
@@ -587,6 +742,14 @@ const News = () => {
                 />
             </View>
 
+            {loading ? (
+  <FlatList
+    data={[1,2,3,4,5]}
+    keyExtractor={item => item.toString()}
+    renderItem={() => <NewsCardSkeleton themeColors={themeColors} />}
+    contentContainerStyle={styles.newsList}
+  />
+) : (
             <FlatList
                 data={filteredNews}
                 keyExtractor={(item) => item.id}
@@ -609,8 +772,6 @@ const News = () => {
                 )}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
                 contentContainerStyle={styles.newsList}
-        onRefresh={onRefresh}
-        refreshing={refreshing}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -620,15 +781,14 @@ const News = () => {
         ListEmptyComponent={() => (
           <View style={styles.emptyState}>
             <Ionicons name="newspaper-outline" size={64} color={themeColors.textSecondary} />
-            <Text style={[styles.emptyStateTitle, { color: themeColors.text }]}>
-              No news found
-            </Text>
+        <Text style={[styles.emptyStateTitle, { color: themeColors.text }]}>No news found</Text>
             <Text style={[styles.emptyStateSubtitle, { color: themeColors.textSecondary }]}>
               {searchText.trim() ? 'Try adjusting your search terms' : 'Try selecting a different category'}
             </Text>
           </View>
         )}
             />
+)}
 
       <MoreMenu
         visible={moreMenuVisible}
@@ -929,6 +1089,57 @@ const styles = StyleSheet.create({
         fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 32,
+    },
+  categoryBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+    marginLeft: 2,
+},
+categoryBadgeText: {
+  fontSize: 12,
+  fontWeight: 'bold',
+  letterSpacing: 0.5,
+},
+  skeletonBadge: {
+  width: 60,
+  height: 20,
+  borderRadius: 10,
+  marginBottom: 8,
+},
+skeletonHeader: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginBottom: 12,
+},
+skeletonAvatar: {
+  width: 28,
+  height: 28,
+  borderRadius: 14,
+  marginRight: 8,
+},
+skeletonUserDetails: {
+  flex: 1,
+},
+skeletonLine: {
+  height: 12,
+  borderRadius: 6,
+  marginBottom: 6,
+},
+skeletonImage: {
+  width: '100%',
+  height: 180,
+  borderRadius: 12,
+  marginTop: 8,
+  marginBottom: 4,
+},
+skeletonActions: {
+  height: 24,
+  borderRadius: 6,
+  marginTop: 12,
     },
 });
 

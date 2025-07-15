@@ -41,7 +41,7 @@ export function PostProvider({ children }) {
   };
 
   return (
-    <PostContext.Provider value={{ posts, addPost }}>
+    <PostContext.Provider value={{ posts, setPosts, addPost }}>
       {children}
     </PostContext.Provider>
   );

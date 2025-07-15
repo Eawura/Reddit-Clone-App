@@ -30,7 +30,8 @@ const imageMap = {
   'w1.jpg': require('../../assets/images/w1.jpg'),
   'yu.jpg': require('../../assets/images/yu.jpg'),
   'Random.jpg': require('../../assets/images/Random.jpg'),
-  'Grand.jpeg': require('../../assets/images/Grand.jpeg'),
+  'Cole Palmer.jpg': require('../../assets/images/Cole Palmer.jpg'),
+  'CWC.jpg': require('../../assets/images/CWC.jpg'),
   'Ramen.jpeg': require('../../assets/images/Ramen.jpeg'),
   'M8 bmw.jpg': require('../../assets/images/M8 bmw.jpg'),
   'euro\'s league logo.jpg': require('../../assets/images/euro\'s league logo.jpg'),
@@ -184,6 +185,9 @@ const CommentModal = ({ visible, onClose, post, comments, onAddComment, onLikeCo
 };
 
 const Post = ({ post, onLike, onDislike, onComment, onShare, onImagePress, onSave, onAward, themeColors, onMore, isBookmarked, DEFAULT_COLLECTION, onProfilePress }) => {
+  // Debug logs for avatar and image lookups
+  console.log('DEBUG: Post ID', post.id, 'avatar lookup:', post.avatar, '->', imageMap[post.avatar]);
+  console.log('DEBUG: Post ID', post.id, 'image lookup:', post.image, '->', imageMap[post.image]);
   // Double-tap logic using ref
   const lastTap = useRef(null);
   const handleDoubleTap = () => {
@@ -199,7 +203,12 @@ const Post = ({ post, onLike, onDislike, onComment, onShare, onImagePress, onSav
       {/* Post Header */}
       <View style={styles.postHeader}>
         <TouchableOpacity style={styles.userInfo} onPress={() => onProfilePress(post)}>
-          <Image source={imageMap[post.avatar] ? imageMap[post.avatar] : require('../../assets/images/Commenter1.jpg')} style={styles.avatar} />
+          <TouchableOpacity onPress={() => onProfilePress(post)}>
+            <Image
+              source={imageMap[post.avatar] ? imageMap[post.avatar] : require('../../assets/images/Commenter1.jpg')}
+              style={styles.avatar}
+            />
+          </TouchableOpacity>
           <View style={styles.userDetails}>
             <Text style={[styles.username, { color: themeColors.text }]}>{post.user}</Text>
             <Text style={[styles.postTime, { color: themeColors.textSecondary }]}>{getRelativeTime(post.timestamp)}</Text>
@@ -209,15 +218,14 @@ const Post = ({ post, onLike, onDislike, onComment, onShare, onImagePress, onSav
           <Feather name="more-horizontal" size={20} color={themeColors.textSecondary} />
         </TouchableOpacity>
       </View>
-
       {/* Post Content with double-tap to like, but NOT profile navigation */}
       <Pressable onPress={handleDoubleTap}>
         <View style={styles.postContent}>
           <Text style={[styles.postTitle, { color: themeColors.text }]}>{post.title}</Text>
           {post.image && (
             <TouchableOpacity onPress={() => onImagePress(post.image)}>
-              <Image 
-                source={imageMap[post.image] ? imageMap[post.image] : { uri: post.image }} 
+              <Image
+                source={imageMap[post.image] ? imageMap[post.image] : require('../../assets/images/Random.jpg')}
                 style={styles.postImage}
                 resizeMode="cover"
               />
@@ -301,7 +309,7 @@ const formatCount = (num) => {
 };
 
 const index = () => {
-  const { posts, addPost } = usePosts();
+  const { posts, setPosts } = usePosts();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -365,17 +373,17 @@ const index = () => {
   // Filter and sort posts for Home feed
   const filteredPosts = posts
     .filter(post => {
-      const q = searchText.toLowerCase();
+      const q = (searchText || '').toLowerCase();
       return (
-        post.title.toLowerCase().includes(q) ||
-        (post.content && post.content.toLowerCase().includes(q)) ||
-        (post.user && post.user.toLowerCase().includes(q))
+        (typeof post.title === 'string' && post.title.toLowerCase().includes(q)) ||
+        (typeof post.content === 'string' && post.content.toLowerCase().includes(q)) ||
+        (typeof post.user === 'string' && post.user.toLowerCase().includes(q))
       );
     })
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   const handleLike = (id) => {
-    addPost(posts => posts.map(post => {
+    setPosts(posts => posts.map(post => {
       if (post.id === id) {
         if (post.liked) {
           return { ...post, liked: false, likes: post.likes - 1 };
@@ -388,7 +396,7 @@ const index = () => {
   };
 
   const handleDislike = (id) => {
-    addPost(posts => posts.map(post => {
+    setPosts(posts => posts.map(post => {
       if (post.id === id) {
         if (post.disliked) {
           return { ...post, disliked: false };
@@ -420,7 +428,7 @@ const index = () => {
     setComments(prev => [newComment, ...prev]);
     
     // Update post comment count
-    addPost(posts => posts.map(post => {
+    setPosts(posts => posts.map(post => {
       if (post.id === selectedPost.id) {
         return { ...post, comments: post.comments + 1 };
       }
@@ -429,7 +437,7 @@ const index = () => {
   };
 
   const handleLikeComment = (commentId) => {
-    addComments(comments => comments.map(comment => {
+    setComments(comments => comments.map(comment => {
       if (comment.id === commentId) {
         if (comment.liked) {
           return { ...comment, liked: false, likes: comment.likes - 1 };
@@ -493,7 +501,7 @@ const index = () => {
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => {
-      addPost(data.posts.map(p => ({ ...p, liked: false, disliked: false, saved: false, awarded: false })));
+      setPosts(data.posts.map(p => ({ ...p, liked: false, disliked: false, saved: false, awarded: false })));
       setRefreshing(false);
     }, 1200);
   };
@@ -514,7 +522,7 @@ const index = () => {
   };
 
   const handleAward = (id) => {
-    addPost(posts => posts.map(post => post.id === id ? { ...post, awarded: !post.awarded } : post));
+    setPosts(posts => posts.map(post => post.id === id ? { ...post, awarded: !post.awarded } : post));
   };
 
   const handleMorePress = (post) => {
@@ -531,13 +539,16 @@ const index = () => {
   };
 
   const handleProfilePress = (post) => {
-    const userPosts = posts.filter(p => p.user === post.user);
-    router.navigate('profile', {
-      user: {
-        avatar: post.avatar,
-        user: post.user,
-        posts: userPosts,
-      }
+    router.push({
+      pathname: '/profile',
+      params: {
+        user: JSON.stringify({
+          user: post.user,
+          avatar: post.avatar,
+          id: post.id,
+        }),
+        from: 'root',
+      },
     });
   };
 
@@ -642,7 +653,23 @@ const index = () => {
         <FlatList
           data={filteredPosts}
           keyExtractor={item => item.id}
-          renderItem={({ item }) => <Post post={{...item, saved: isBookmarked(item.id)}} onLike={handleLike} onDislike={handleDislike} onComment={handleComment} onShare={handleShare} onImagePress={handleImagePress} onSave={handleSave} onAward={handleAward} themeColors={themeColors} onMore={handleMorePress} isBookmarked={isBookmarked} DEFAULT_COLLECTION={DEFAULT_COLLECTION} onProfilePress={handleProfilePress} />}
+          renderItem={({ item }) => (
+            <Post
+              post={{...item, saved: isBookmarked(item.id)}}
+              onLike={handleLike}
+              onDislike={handleDislike}
+              onComment={handleComment}
+              onShare={handleShare}
+              onImagePress={handleImagePress}
+              onSave={handleSave}
+              onAward={handleAward}
+              themeColors={themeColors}
+              onMore={handleMorePress}
+              isBookmarked={isBookmarked}
+              DEFAULT_COLLECTION={DEFAULT_COLLECTION}
+              onProfilePress={handleProfilePress}
+            />
+          )}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={() => (

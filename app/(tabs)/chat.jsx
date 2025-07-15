@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, Image, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, Modal, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import ProfileModal from '../../components/ProfileModal';
 import { useChatContext, useTheme } from '../../components/ThemeContext';
 
@@ -170,20 +170,23 @@ const Chat = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const { themeColors } = useTheme();
+  // Add user modal state
+  const [addUserModalVisible, setAddUserModalVisible] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
 
   // Filter chats by search text
   const filteredChats = searchText.trim() === '' ? chats : chats.filter(chat => {
     const q = searchText.toLowerCase();
     return (
-      chat.name.toLowerCase().includes(q) ||
-      chat.lastMessage.toLowerCase().includes(q)
+      (chat.name && chat.name.toLowerCase().includes(q)) ||
+      (chat.lastMessage && chat.lastMessage.toLowerCase().includes(q))
     );
   });
 
   const handleSearchIcon = () => setSearchOpen(true);
   const handleCancelSearch = () => { setSearchOpen(false); setSearchText(''); };
   const handleNewChat = () => {
-    console.log('New chat pressed');
+    setAddUserModalVisible(true);
   };
 
   const handleChatPress = (chat) => {
@@ -252,6 +255,58 @@ const Chat = () => {
         }} 
         lastTabPath={lastTabPath} 
       />
+      
+      <Modal
+        visible={addUserModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAddUserModalVisible(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ backgroundColor: themeColors.card, padding: 24, borderRadius: 12, width: 300 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 12, color: themeColors.text }}>Add New User</Text>
+            <TextInput
+              placeholder="Enter user name"
+              value={newUserName}
+              onChangeText={setNewUserName}
+              style={{ borderWidth: 1, borderColor: themeColors.border, borderRadius: 8, padding: 8, marginBottom: 16, color: themeColors.text }}
+              placeholderTextColor={themeColors.textSecondary}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <TouchableOpacity onPress={() => setAddUserModalVisible(false)} style={{ marginRight: 12 }}>
+                <Text style={{ color: themeColors.textSecondary }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  if (newUserName.trim()) {
+                    setChats(prev => [
+                      {
+                        id: Date.now().toString(),
+                        name: newUserName,
+                        avatar: 'Random.jpg',
+                        lastMessage: '',
+                        unread: 0,
+                        isOnline: false,
+                        isGroup: false,
+                        isBroadcast: false,
+                        isPinned: false,
+                        isMuted: false,
+                        time: 'Now',
+                        messageStatus: 'sent',
+                      },
+                      ...prev,
+                    ]);
+                    setNewUserName('');
+                    setAddUserModalVisible(false);
+                  }
+                }}
+              >
+                <Text style={{ color: themeColors.accent, fontWeight: 'bold' }}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       
       {/* Chat List */}
       <FlatList
