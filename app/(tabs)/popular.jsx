@@ -61,6 +61,16 @@ const imageMap = {
   'myStory4.jpg': require('../../assets/images/myStory4.jpg'),
   'myStory5.jpg': require('../../assets/images/myStory5.jpg'),
   'myStory6.jpg': require('../../assets/images/myStory6.jpg'),
+  'Tech.png': require('../../assets/images/Tech.png'),
+  'Science1.png': require('../../assets/images/Science1.png'),
+  'AnimalA.png': require('../../assets/images/AnimalA.png'),
+  'TravelA.png': require('../../assets/images/TravelA.png'),
+  'Ai.png': require('../../assets/images/Ai.png'),
+  'Travel.png': require('../../assets/images/Travel.png'),
+  'Monkey.png': require('../../assets/images/Monkey.png'),
+  'BM.png': require('../../assets/images/BM.png'),
+  'p.png': require('../../assets/images/p.png'),
+  'Dis.png': require('../../assets/images/Dis.png'),
 };
 
 // Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)

@@ -60,62 +60,62 @@
       "user": "n/Tech",
       "timestamp": "2024-06-13T10:00:00.000Z",
       "title": "AI breakthrough: New model sets record!",
-      "image": "Messi.jpg",
+      "image": "Ai.png",
       "likes": 120,
       "comments": 7,
       "shares": 15,
-      "avatar": "fifa logo.jpg"
+      "avatar": "Tech.png"
     },
     {
       "id": "7",
       "user": "n/Travel",
       "timestamp": "2024-06-13T09:30:00.000Z",
-      "title": "Sunrise at the Grand Canyon is breathtaking!",
-      "image": "Grand.jpeg",
+      "title": "Rome is a beautiful city",
+      "image": "Travel.png",
       "likes": 88,
       "comments": 3,
       "shares": 5,
-      "avatar": "Cole Palmer.jpg"
+      "avatar": "TravelA.png"
     },
     {
       "id": "8",
       "user": "n/Science",
       "timestamp": "2024-06-13T08:00:00.000Z",
       "title": "Scientists discover new species in the Amazon",
-      "image": "Ramen.jpeg",
+      "image": "Monkey.png",
       "likes": 64,
       "comments": 2,
       "shares": 8,
-      "avatar": "Penguin.jpg"
+      "avatar": "Science1.png"
     },
     {
       "id": "9",
       "user": "n/AutoTech",
       "timestamp": "2024-06-13T15:00:00.000Z",
       "title": "BMW M8: The Ultimate Driving Machine",
-      "image": "M8 bmw.jpg",
+      "image": "BM.png",
       "likes": 150,
       "comments": 6,
       "shares": 12,
-      "avatar": "MB.jpg"
+      "avatar": "M8 bmw.jpg"
     },
     {
       "id": "10",
       "user": "n/Animals",
       "timestamp": "2024-06-13T14:30:00.000Z",
       "title": "Penguins spotted in unexpected places!",
-      "image": "Penguin.jpg",
+      "image": "p.png",
       "likes": 73,
       "comments": 5,
       "shares": 7,
-      "avatar": "Penguin.jpg"
+      "avatar": "Animal.png"
     },
     {
       "id": "11",
       "user": "n/Random",
       "timestamp": "2024-06-13T14:00:00.000Z",
       "title": "Random discoveries that made my day",
-      "image": "Random.jpg",
+      "image": "Dis.png",
       "likes": 41,
       "comments": 2,
       "shares": 3,

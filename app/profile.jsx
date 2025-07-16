@@ -60,6 +60,16 @@ const imageMap = {
   'quantum-computing-technology.jpg': require('../assets/images/quantum-computing-technology.jpg'),
   'image-fallback.jpg': require('../assets/images/Random.jpg'),
   'danny-1.webp': require('../assets/images/danny-1.webp'),
+  'Tech.png': require('../assets/images/Tech.png'),
+  'Science1.png': require('../assets/images/Science1.png'),
+  'AnimalA.png': require('../assets/images/AnimalA.png'),
+  'TravelA.png': require('../assets/images/TravelA.png'),
+  'Ai.png': require('../assets/images/Ai.png'),
+  'Travel.png': require('../assets/images/Travel.png'),
+  'Monkey.png': require('../assets/images/Monkey.png'),
+  'BM.png': require('../assets/images/BM.png'),
+  'p.png': require('../assets/images/p.png'),
+  'Dis.png': require('../assets/images/Dis.png'),
 };
 
 const ProfileView = () => {

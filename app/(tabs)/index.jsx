@@ -16,6 +16,16 @@ import data from './data.json';
 
 // Image mapping for profile pictures and post images
 const imageMap = {
+  'Tech.png': require('../../assets/images/Tech.png'),
+  'Science1.png': require('../../assets/images/Science1.png'),
+  'AnimalA.png': require('../../assets/images/AnimalA.png'),
+  'TravelA.png': require('../../assets/images/TravelA.png'),
+  'Ai.png': require('../../assets/images/Ai.png'),
+  'Travel.png': require('../../assets/images/Travel.png'),
+  'Monkey.png': require('../../assets/images/Monkey.png'),
+  'BM.png': require('../../assets/images/BM.png'),
+  'p.png': require('../../assets/images/p.png'),
+  'Dis.png': require('../../assets/images/Dis.png'),
   'curry.jpg': require('../../assets/images/curry.jpg'),
   'Messi.jpg': require('../../assets/images/Messi.jpg'),
   'harry logo.webp': require('../../assets/images/harry logo.webp'),
