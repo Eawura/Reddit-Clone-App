@@ -8,6 +8,7 @@ import CollectionModal from '../../components/CollectionModal';
 import CommentModal from '../../components/CommentModal';
 import ImageModal from '../../components/ImageModal';
 import MoreMenu from '../../components/MoreMenu';
+import { useNews } from '../../components/NewsContext';
 import PopupMenu from '../../components/PopupMenu';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
@@ -143,6 +144,19 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
   const [imgError, setImgError] = useState(false);
   const upvoteScale = useRef(new Animated.Value(1)).current;
   const bookmarkScale = useRef(new Animated.Value(1)).current;
+  const [pressedButton, setPressedButton] = useState({});
+
+  // Robust avatar resolution
+  const avatarKey = (news.avatar || '').trim();
+  let avatarSource = imageMap[avatarKey];
+  if (!avatarSource && avatarKey.toLowerCase().endsWith('.jpg')) {
+    avatarSource = imageMap[avatarKey.replace(/\.jpg$/i, '.jpeg')];
+  } else if (!avatarSource && avatarKey.toLowerCase().endsWith('.jpeg')) {
+    avatarSource = imageMap[avatarKey.replace(/\.jpeg$/i, '.jpg')];
+  }
+  if (!avatarSource) {
+    avatarSource = imageMap['Random.jpg'];
+  }
 
   const animateIcon = (animatedValue) => {
     Animated.sequence([
@@ -176,15 +190,15 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
           accessible accessibilityLabel={`View profile for ${news.user}`}
         >
           <Image
-            source={imageMap[news.avatar] ? imageMap[news.avatar] : require('../../assets/images/Commenter1.jpg')}
+            source={avatarSource}
             style={styles.newsAvatar}
             accessible accessibilityLabel={`Avatar for ${news.user}`}
           />
-        <View style={styles.newsUserDetails}>
+          <View style={styles.newsUserDetails}>
             <Text style={[styles.newsUsername, { color: themeColors.text }]}>n/{news.user}</Text>
-          <Text style={[styles.newsTime, { color: themeColors.textSecondary }]}>{getRelativeTime(news.timestamp)}</Text>
-        </View>
-      </TouchableOpacity>
+            <Text style={[styles.newsTime, { color: themeColors.textSecondary }]}>{getRelativeTime(news.timestamp)}</Text>
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.moreButton}
           onPress={() => onMore(news)}
@@ -220,8 +234,10 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
     <View style={styles.newsActions}>
       <View style={styles.newsActionGroup}>
           <TouchableOpacity
-            style={styles.newsActionButton}
+            style={[styles.newsActionButton, pressedButton[news.id + '-upvote'] && { backgroundColor: '#e8f0fe' }]}
             onPress={handleUpvote}
+            onPressIn={() => setPressedButton(prev => ({ ...prev, [news.id + '-upvote']: true }))}
+            onPressOut={() => setPressedButton(prev => ({ ...prev, [news.id + '-upvote']: false }))}
             accessible accessibilityLabel={news.upvoted ? 'Remove upvote' : 'Upvote'}
           >
             <Animated.View style={{ transform: [{ scale: upvoteScale }] }}>
@@ -234,8 +250,10 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
             <Text style={[styles.newsActionText, { color: news.upvoted ? '#2E45A3' : themeColors.textSecondary }]}> {formatCount(news.upvotes)} </Text>
         </TouchableOpacity>
           <TouchableOpacity
-            style={styles.newsActionButton}
+            style={[styles.newsActionButton, pressedButton[news.id + '-downvote'] && { backgroundColor: '#fdeaea' }]}
             onPress={() => onDownvote(news.id)}
+            onPressIn={() => setPressedButton(prev => ({ ...prev, [news.id + '-downvote']: true }))}
+            onPressOut={() => setPressedButton(prev => ({ ...prev, [news.id + '-downvote']: false }))}
             accessible accessibilityLabel={news.downvoted ? 'Remove downvote' : 'Downvote'}
           >
           <AntDesign 
@@ -424,7 +442,7 @@ const NewsCardSkeleton = ({ themeColors }) => (
 // Main News Screen Component
 const News = () => {
   // State management for news and UI
-  const [newsList, setNewsList] = useState(demoNews);
+  const { newsList, setNewsList } = useNews();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [lastTabPath, setLastTabPath] = useState(null);
@@ -446,7 +464,7 @@ const News = () => {
     setLoading(true);
     const timer = setTimeout(() => setLoading(false), 1200); // Simulate loading
     return () => clearTimeout(timer);
-  }, []);
+  }, []); // Only for loading skeleton, not for resetting newsList
   
   // Sample comments data for the comment modal
   const [comments, setComments] = useState([
@@ -492,6 +510,15 @@ const News = () => {
     }, 60000); // Update every minute
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const updated = e.detail;
+      setNewsList(newsList => newsList.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+    };
+    window.addEventListener('postUpdate', handler);
+    return () => window.removeEventListener('postUpdate', handler);
   }, []);
 
   // News categories for filtering
@@ -613,7 +640,7 @@ const News = () => {
   const filteredNews = newsList
     .filter(item => selectedCategory === 'All' || item.category === selectedCategory)
     .filter(item => {
-    const matchesSearch = searchText.trim() === '' || 
+      const matchesSearch = searchText.trim() === '' || 
         (typeof item.title === 'string' && item.title.toLowerCase().includes(searchText.toLowerCase())) ||
         (typeof item.excerpt === 'string' && item.excerpt.toLowerCase().includes(searchText.toLowerCase()));
       return matchesSearch;
@@ -664,6 +691,7 @@ const News = () => {
   };
 
   const handleProfilePress = (news) => {
+    console.log('DEBUG: handleProfilePress avatar:', news.avatar, 'for news id:', news.id);
     // Find all news posts for this user
     const userNewsPosts = demoNews.filter(n => n.user === news.user);
     router.push({
@@ -676,6 +704,7 @@ const News = () => {
         }),
         from: 'news',
         newsPosts: JSON.stringify(userNewsPosts),
+        selectedPost: JSON.stringify(news),
       },
     });
   };

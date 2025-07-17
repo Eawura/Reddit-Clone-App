@@ -3,19 +3,20 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { useNews } from '../../components/NewsContext';
 import { usePosts } from '../../components/PostContext';
 import { useProfile } from '../../components/ProfileContext';
 import { useTheme } from '../../components/ThemeContext';
@@ -27,11 +28,11 @@ const Create = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { themeColors } = useTheme();
-  const { addPost } = usePosts();
+  const { newsList, setNewsList } = useNews();
   const { profile } = useProfile();
+  const { addPost } = usePosts();
   
   // Form state
-  const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [selectedCommunity, setSelectedCommunity] = useState(params.community || '');
   const [canPost, setCanPost] = useState(false);
@@ -80,8 +81,8 @@ const Create = () => {
   );
 
   useEffect(() => {
-    setCanPost(title.trim().length > 0 && selectedCommunity);
-  }, [title, selectedCommunity]);
+    setCanPost(selectedCommunity);
+  }, [selectedCommunity]);
 
   // Helper: List of valid avatar keys
   const validAvatars = [
@@ -97,10 +98,8 @@ const Create = () => {
   const handlePost = async () => {
     if (!canPost) return;
     setIsPosting(true);
-    // Use the logged-in user's avatar
     const avatar = profile.avatar || 'commenter1.jpg';
-    addPost({
-      title: title.trim(),
+    const newPost = {
       content: body.trim(),
       user: profile.username || 'u/CurrentUser',
       avatar,
@@ -110,36 +109,23 @@ const Create = () => {
       poll: showPoll ? { question: pollTitle, options: pollOptions, duration: pollDuration } : undefined,
       link: showUrlInput ? { url, title: urlTitle } : undefined,
       timestamp: new Date(),
-    });
+      // upvotes, comments, etc. will be set in addPost
+    };
+    addPost(newPost);
     setTimeout(() => {
       setIsPosting(false);
-      Alert.alert(
-        'Success!',
-        'Your post has been created successfully.',
-        [
-          {
-            text: 'View Post',
-            onPress: () => router.push('/(tabs)/')
-          },
-          {
-            text: 'Create Another',
-            onPress: () => {
-              setTitle('');
-              setBody('');
-              setSelectedImages([]);
-              setSelectedVideo(null);
-              setShowPoll(false);
-              setShowUrlInput(false);
-              setUrl('');
-              setUrlTitle('');
-              setPollOptions(['', '']);
-              setPollTitle('');
-              setPostType('text');
-            }
-          }
-        ]
-      );
-    }, 1500);
+      setBody('');
+      setSelectedImages([]);
+      setSelectedVideo(null);
+      setShowPoll(false);
+      setShowUrlInput(false);
+      setUrl('');
+      setUrlTitle('');
+      setPollOptions(['', '']);
+      setPollTitle('');
+      setPostType('text');
+      router.push('/(tabs)/');
+    }, 500);
   };
 
   const handleSelectCommunity = () => {
@@ -358,21 +344,6 @@ const Create = () => {
           </Text>
           <Ionicons name="chevron-down" size={20} color={themeColors.textSecondary} />
         </TouchableOpacity>
-
-        {/* Title Input */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={[styles.titleInput, { color: themeColors.text }]}
-            placeholder="Title"
-            placeholderTextColor={themeColors.textSecondary}
-            value={title}
-            onChangeText={setTitle}
-            maxLength={300}
-          />
-          <Text style={[styles.charCount, { color: themeColors.textSecondary }]}>
-            {title.length}/300
-          </Text>
-        </View>
 
         {/* Body Input */}
         {postType === 'text' && (

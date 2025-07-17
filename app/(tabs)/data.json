@@ -120,6 +120,39 @@
       "comments": 2,
       "shares": 3,
       "avatar": "Random.jpg"
+    },
+    {
+      "id": "12",
+      "user": "n/Science",
+      "timestamp": "2024-06-14T12:00:00.000Z",
+      "title": "Quantum Computing: The Next Revolution",
+      "image": "Science1.png",
+      "likes": 0,
+      "comments": 0,
+      "shares": 0,
+      "avatar": "AnimalA.png"
+    },
+    {
+      "id": "13",
+      "user": "n/Travel",
+      "timestamp": "2024-06-14T12:05:00.000Z",
+      "title": "Exploring the Wonders of the World",
+      "image": "Travel.png",
+      "likes": 0,
+      "comments": 0,
+      "shares": 0,
+      "avatar": "TravelA.png"
+    },
+    {
+      "id": "14",
+      "user": "n/Tech",
+      "timestamp": "2024-06-14T12:10:00.000Z",
+      "title": "AI in Everyday Life: What’s Next?",
+      "image": "Ai.png",
+      "likes": 0,
+      "comments": 0,
+      "shares": 0,
+      "avatar": "Tech.png"
     }
   ],
   "trending": [

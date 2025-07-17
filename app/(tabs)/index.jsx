@@ -12,7 +12,6 @@ import { usePosts } from '../../components/PostContext';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
 import { getRelativeTime } from '../../utils/timeUtils';
-import data from './data.json';
 
 // Image mapping for profile pictures and post images
 const imageMap = {
@@ -232,6 +231,9 @@ const Post = ({ post, onLike, onDislike, onComment, onShare, onImagePress, onSav
       <Pressable onPress={handleDoubleTap}>
         <View style={styles.postContent}>
           <Text style={[styles.postTitle, { color: themeColors.text }]}>{post.title}</Text>
+          {post.content && (
+            <Text style={[styles.postBody, { color: themeColors.text }]}>{post.content}</Text>
+          )}
           {post.image && (
             <TouchableOpacity onPress={() => onImagePress(post.image)}>
               <Image
@@ -385,9 +387,9 @@ const index = () => {
     .filter(post => {
       const q = (searchText || '').toLowerCase();
       return (
-        (typeof post.title === 'string' && post.title.toLowerCase().includes(q)) ||
-        (typeof post.content === 'string' && post.content.toLowerCase().includes(q)) ||
-        (typeof post.user === 'string' && post.user.toLowerCase().includes(q))
+        (post.title || '').toLowerCase().includes(q) ||
+        (post.content || '').toLowerCase().includes(q) ||
+        (post.user || '').toLowerCase().includes(q)
       );
     })
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -511,7 +513,7 @@ const index = () => {
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => {
-      setPosts(data.posts.map(p => ({ ...p, liked: false, disliked: false, saved: false, awarded: false })));
+      setPosts(posts => posts.map(post => ({ ...post, liked: false, disliked: false, saved: false, awarded: false })));
       setRefreshing(false);
     }, 1200);
   };
@@ -755,6 +757,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     lineHeight: 20,
+    marginBottom: 8,
+  },
+  postBody: {
+    fontSize: 15,
+    lineHeight: 22,
     marginBottom: 8,
   },
   postImage: {

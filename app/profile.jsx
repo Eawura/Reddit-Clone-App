@@ -3,7 +3,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import CommentModal from '../components/CommentModal';
 import ImageModal from '../components/ImageModal';
@@ -72,10 +72,21 @@ const imageMap = {
   'Dis.png': require('../assets/images/Dis.png'),
 };
 
+// Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)
+function formatCount(num) {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return num;
+}
+
 const ProfileView = () => {
   const { themeColors } = useTheme();
   const router = useRouter();
-  const { user: userParam, from, newsPosts } = useLocalSearchParams();
+  const { user: userParam, from, newsPosts, selectedPost: selectedPostParam } = useLocalSearchParams();
   const { profile: currentUser } = useProfile();
   const { posts: globalPosts, setPosts } = usePosts();
   let user = {};
@@ -114,6 +125,13 @@ const ProfileView = () => {
   console.log('DEBUG: Profile normalized username:', normalizedUsername);
   console.log('DEBUG: All compared user fields:', allUserFields);
 
+  let selectedPostObj = null;
+  try {
+    selectedPostObj = selectedPostParam ? (typeof selectedPostParam === 'string' ? JSON.parse(selectedPostParam) : selectedPostParam) : null;
+  } catch {
+    selectedPostObj = null;
+  }
+
   // Demo commenters for all posts
   const demoCommenters = [
     { username: 'u/Commenter1', avatar: 'commenter1.jpg', text: 'This is amazing! Love the content.', time: '2 hours ago', likes: 12 },
@@ -121,56 +139,88 @@ const ProfileView = () => {
     { username: 'u/Commenter3', avatar: 'commenter3.jpg', text: 'I totally agree with this. Well said!', time: '30 minutes ago', likes: 5 },
   ];
   // Local state for profile posts (for button interactions)
-  const [profilePosts, setProfilePosts] = useState(posts.map(post => ({ ...post, comments: 3, commentsList: demoCommenters.map((c, i) => ({ ...c, id: i + 1, liked: false })) })));
-  useEffect(() => { setProfilePosts(posts.map(post => ({ ...post, comments: 3, commentsList: demoCommenters.map((c, i) => ({ ...c, id: i + 1, liked: false })) })) ); }, [newsPosts, globalPosts, userParam]);
+  const [profilePosts, setProfilePosts] = useState(() => posts.map(post => ({ ...post, comments: 3, commentsList: demoCommenters.map((c, i) => ({ ...c, id: i + 1, liked: false })) })));
 
   // Handlers for actions
   const handleLike = (id) => {
-    if (!newsPosts) {
-      // Update global posts context for global posts
-      setPosts(posts => posts.map(p => p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? (p.likes || 0) - 1 : (p.likes || 0) + 1 } : p));
-    }
-    setProfilePosts(posts => posts.map(p => p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? (p.likes || 0) - 1 : (p.likes || 0) + 1 } : p));
-  };
-  const handleUpvote = (id) => {
+    setPosts(posts => posts.map(p => p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? (p.likes || 0) - 1 : (p.likes || 0) + 1 } : p));
     setProfilePosts(posts => posts.map(p => {
       if (p.id === id) {
-        // If already upvoted, remove upvote
+        const updated = { ...p, liked: !p.liked, likes: p.liked ? (p.likes || 0) - 1 : (p.likes || 0) + 1 };
+        window.dispatchEvent(new CustomEvent('postUpdate', { detail: updated }));
+        return updated;
+      }
+      return p;
+    }));
+  };
+  const handleUpvote = (id) => {
+    setPosts(posts => posts.map(p => {
+      if (p.id === id) {
         if (p.upvoted) {
           return { ...p, upvoted: false, downvoted: false, upvotes: (p.upvotes ?? 0) - 1 };
         }
-        // If downvoted, remove downvote and add upvote (net +1)
         if (p.downvoted) {
           return { ...p, upvoted: true, downvoted: false, upvotes: (p.upvotes ?? 0) + 1 };
         }
-        // If neutral, add upvote
         return { ...p, upvoted: true, downvoted: false, upvotes: (p.upvotes ?? 0) + 1 };
+      }
+      return p;
+    }));
+    setProfilePosts(posts => posts.map(p => {
+      if (p.id === id) {
+        let updated;
+        if (p.upvoted) {
+          updated = { ...p, upvoted: false, downvoted: false, upvotes: (p.upvotes ?? 0) - 1 };
+        } else if (p.downvoted) {
+          updated = { ...p, upvoted: true, downvoted: false, upvotes: (p.upvotes ?? 0) + 1 };
+        } else {
+          updated = { ...p, upvoted: true, downvoted: false, upvotes: (p.upvotes ?? 0) + 1 };
+        }
+        window.dispatchEvent(new CustomEvent('postUpdate', { detail: updated }));
+        return updated;
       }
       return p;
     }));
   };
   const handleDownvote = (id) => {
-    setProfilePosts(posts => posts.map(p => {
+    setPosts(posts => posts.map(p => {
       if (p.id === id) {
-        // If already downvoted, remove downvote
         if (p.downvoted) {
           return { ...p, downvoted: false };
         }
-        // If upvoted, remove upvote and add downvote (net -1)
         if (p.upvoted) {
           return { ...p, upvoted: false, downvoted: true, upvotes: (p.upvotes ?? 0) - 1 };
         }
-        // If neutral, add downvote (no change to upvotes)
         return { ...p, downvoted: true };
+      }
+      return p;
+    }));
+    setProfilePosts(posts => posts.map(p => {
+      if (p.id === id) {
+        let updated;
+        if (p.downvoted) {
+          updated = { ...p, downvoted: false };
+        } else if (p.upvoted) {
+          updated = { ...p, upvoted: false, downvoted: true, upvotes: (p.upvotes ?? 0) - 1 };
+        } else {
+          updated = { ...p, downvoted: true };
+        }
+        window.dispatchEvent(new CustomEvent('postUpdate', { detail: updated }));
+        return updated;
       }
       return p;
     }));
   };
   const handleSave = (id) => {
-    if (!newsPosts) {
-      setPosts(posts => posts.map(p => p.id === id ? { ...p, saved: !p.saved } : p));
-    }
-    setProfilePosts(posts => posts.map(p => p.id === id ? { ...p, saved: !p.saved } : p));
+    setPosts(posts => posts.map(p => p.id === id ? { ...p, saved: !p.saved } : p));
+    setProfilePosts(posts => posts.map(p => {
+      if (p.id === id) {
+        const updated = { ...p, saved: !p.saved };
+        window.dispatchEvent(new CustomEvent('postUpdate', { detail: updated }));
+        return updated;
+      }
+      return p;
+    }));
   };
   const handleComment = (id) => {
     const post = profilePosts.find(p => p.id === id);
@@ -233,25 +283,47 @@ const ProfileView = () => {
 
   const isCurrentUser = (user?.user || user?.author || 'User') === (currentUser?.username || 'User');
 
-  // Get avatar and username from the first matching post if available
-  const firstPost = posts[0];
-  let displayAvatar = avatarUri ? { uri: avatarUri } : (profile.avatar && imageMap[profile.avatar] ? imageMap[profile.avatar] : require('../assets/images/Commenter1.jpg'));
-  let displayUsername = profile.username;
-  if (firstPost) {
-    if (firstPost.avatar && imageMap[firstPost.avatar]) {
-      displayAvatar = imageMap[firstPost.avatar];
+  // Get avatar and username for the profile header
+  let displayAvatar = null;
+  let displayUsername = null;
+  let showInitials = false;
+  let initials = '';
+  let headerAvatarKey = '';
+  if (selectedPostObj && selectedPostObj.avatar) {
+    displayUsername = typeof selectedPostObj.user === 'object' ? selectedPostObj.user.name || profile.username : selectedPostObj.user;
+    headerAvatarKey = (selectedPostObj.avatar || '').trim();
+    if (headerAvatarKey && imageMap[headerAvatarKey]) {
+      displayAvatar = imageMap[headerAvatarKey];
+      showInitials = false;
+    } else if (headerAvatarKey && headerAvatarKey.startsWith('http')) {
+      displayAvatar = { uri: headerAvatarKey };
+      showInitials = false;
+    } else {
+      showInitials = true;
     }
-    if (firstPost.user) {
-      displayUsername = typeof firstPost.user === 'object' ? firstPost.user.name || profile.username : firstPost.user;
+  } else if (posts[0] && posts[0].avatar) {
+    displayUsername = typeof posts[0].user === 'object' ? posts[0].user.name || profile.username : posts[0].user;
+    headerAvatarKey = (posts[0].avatar || '').trim();
+    if (headerAvatarKey && imageMap[headerAvatarKey]) {
+      displayAvatar = imageMap[headerAvatarKey];
+      showInitials = false;
+    } else if (headerAvatarKey && headerAvatarKey.startsWith('http')) {
+      displayAvatar = { uri: headerAvatarKey };
+      showInitials = false;
+    } else {
+      showInitials = true;
     }
-  } else if (!isCurrentUser) {
-    // For other users, always use the avatar and username from the user object if no posts
-    const userAvatar = user.avatar && imageMap[user.avatar] ? imageMap[user.avatar] : require('../assets/images/Commenter1.jpg');
-    const userUsername = user.user || user.author || 'User';
-    if (!editModalVisible) {
-      displayAvatar = userAvatar;
-      displayUsername = userUsername;
-    }
+  } else {
+    displayUsername = profile.username;
+    showInitials = true;
+  }
+  if (showInitials && displayUsername) {
+    initials = displayUsername
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   }
 
   const [imageModalVisible, setImageModalVisible] = useState(false);
@@ -259,6 +331,7 @@ const ProfileView = () => {
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [comments, setComments] = useState([]);
+  const [pressedButton, setPressedButton] = useState({});
 
   // Add handlers for comment modal
   const handleAddComment = (text, replyingTo = null) => {
@@ -272,7 +345,15 @@ const ProfileView = () => {
       replyingTo: replyingTo
     };
     setComments(prev => [newComment, ...prev]);
-    setProfilePosts(posts => posts.map(post => post.id === selectedPost.id ? { ...post, comments: (post.comments ?? 0) + 1, commentsList: [newComment, ...(post.commentsList || [])] } : post));
+    setProfilePosts(posts => posts.map(post => {
+      if (post.id === selectedPost.id) {
+        const updated = { ...post, comments: (post.comments ?? 0) + 1, commentsList: [newComment, ...(post.commentsList || [])] };
+        window.dispatchEvent(new CustomEvent('postUpdate', { detail: updated }));
+        return updated;
+      }
+      return post;
+    }));
+    setPosts(posts => posts.map(post => post.id === selectedPost.id ? { ...post, comments: (post.comments ?? 0) + 1 } : post));
   };
   const handleLikeComment = (commentId) => {
     setComments(comments => comments.map(comment => {
@@ -286,6 +367,9 @@ const ProfileView = () => {
       return comment;
     }));
   };
+
+  // userPosts is now always profilePosts
+  const userPosts = profilePosts;
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}> 
@@ -316,7 +400,13 @@ const ProfileView = () => {
         </TouchableOpacity>
         <View style={styles.profileCard}>
           <TouchableOpacity onPress={isCurrentUser ? pickAvatar : undefined} accessibilityLabel="Change avatar" disabled={!isCurrentUser}>
-            <Image source={displayAvatar} style={styles.avatar} />
+            {showInitials ? (
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: themeColors.accent + '33', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: themeColors.accent, fontWeight: 'bold', fontSize: 18 }}>{initials}</Text>
+              </View>
+            ) : (
+              <Image source={displayAvatar} style={styles.avatar} />
+            )}
           </TouchableOpacity>
           <Text style={[styles.username, { color: themeColors.text }]}>{displayUsername}</Text>
           <Text style={[styles.bio, { color: themeColors.textSecondary }]}>{profile.bio}</Text>
@@ -354,7 +444,7 @@ const ProfileView = () => {
         <Text style={{ color: themeColors.textSecondary, textAlign: 'center', marginTop: 24 }}>No posts available.</Text>
       ) : (
       <FlatList
-          data={profilePosts}
+          data={userPosts}
           keyExtractor={(item, idx) => item.id ? item.id.toString() : idx.toString()}
           renderItem={({ item }) => {
             // Robust debug log for image and avatar lookup
@@ -401,16 +491,42 @@ const ProfileView = () => {
                 <View style={styles.postActionsRow}>
                   <View style={styles.actionGroupLeft}>
                     {isNewsPost ? (
-                      <TouchableOpacity style={styles.actionButton} onPress={() => handleUpvote(item.id)}>
-                        <AntDesign
-                          name="arrowup"
-                          size={22}
-                          color={item.upvoted ? '#2E45A3' : themeColors.textSecondary}
-                        />
-                        <Text style={[styles.actionText, { color: item.upvoted ? '#2E45A3' : themeColors.textSecondary }]}> {(item.upvotes ?? item.likes ?? 0)} </Text>
-                      </TouchableOpacity>
+                      <>
+                        <TouchableOpacity
+                          style={[styles.actionButton, pressedButton[item.id + '-upvote'] && { backgroundColor: '#e8f0fe' }]}
+                          onPress={() => handleUpvote(item.id)}
+                          onPressIn={() => setPressedButton(prev => ({ ...prev, [item.id + '-upvote']: true }))}
+                          onPressOut={() => setPressedButton(prev => ({ ...prev, [item.id + '-upvote']: false }))}
+                          accessibilityLabel={item.upvoted ? 'Remove upvote' : 'Upvote'}
+                        >
+                          <AntDesign
+                            name="arrowup"
+                            size={22}
+                            color={item.upvoted ? '#2E45A3' : themeColors.textSecondary}
+                          />
+                          <Text style={[styles.actionText, { color: item.upvoted ? '#2E45A3' : themeColors.textSecondary }]}> {formatCount(item.upvotes ?? item.likes ?? 0)} </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.actionButton, pressedButton[item.id + '-downvote'] && { backgroundColor: '#fdeaea' }]}
+                          onPress={() => handleDownvote(item.id)}
+                          onPressIn={() => setPressedButton(prev => ({ ...prev, [item.id + '-downvote']: true }))}
+                          onPressOut={() => setPressedButton(prev => ({ ...prev, [item.id + '-downvote']: false }))}
+                          accessibilityLabel={item.downvoted ? 'Remove downvote' : 'Downvote'}
+                        >
+                          <AntDesign
+                            name="arrowdown"
+                            size={22}
+                            color={item.downvoted ? '#E74C3C' : themeColors.textSecondary}
+                          />
+                        </TouchableOpacity>
+                      </>
                     ) : (
-                      <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
+                      <TouchableOpacity
+                        style={[styles.actionButton, pressedButton[item.id + '-like'] && { backgroundColor: '#fdeaea' }]}
+                        onPress={() => handleLike(item.id)}
+                        onPressIn={() => setPressedButton(prev => ({ ...prev, [item.id + '-like']: true }))}
+                        onPressOut={() => setPressedButton(prev => ({ ...prev, [item.id + '-like']: false }))}
+                      >
                         <AntDesign 
                           name={item.liked ? 'heart' : 'hearto'} 
                           size={22} 
@@ -420,25 +536,28 @@ const ProfileView = () => {
                       </TouchableOpacity>
                     )}
                     {isNewsPost && (
-                      <TouchableOpacity style={styles.actionButton} onPress={() => handleDownvote(item.id)}>
-                        <AntDesign
-                          name="arrowdown"
-                          size={22}
-                          color={item.downvoted ? '#E74C3C' : themeColors.textSecondary}
-                        />
+                      <TouchableOpacity
+                        style={[styles.actionButton, pressedButton[item.id + '-comment'] && { backgroundColor: '#e8f0fe' }]}
+                        onPress={() => handleComment(item.id)}
+                        onPressIn={() => setPressedButton(prev => ({ ...prev, [item.id + '-comment']: true }))}
+                        onPressOut={() => setPressedButton(prev => ({ ...prev, [item.id + '-comment']: false }))}
+                      >
+                        <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
+                        <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{item.comments}</Text>
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity style={styles.actionButton} onPress={() => handleComment(item.id)}>
-                      <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
-                      <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{item.comments}</Text>
-                    </TouchableOpacity>
                   </View>
                   <View style={styles.actionGroupRight}>
                     <TouchableOpacity style={styles.actionButton} onPress={() => handleShare(item.id)}>
                       <Feather name="share-2" size={20} color={themeColors.textSecondary} />
                       <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{item.shares}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton} onPress={() => handleSave(item.id)}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, pressedButton[item.id + '-save'] && { backgroundColor: '#e8f0fe' }]}
+                      onPress={() => handleSave(item.id)}
+                      onPressIn={() => setPressedButton(prev => ({ ...prev, [item.id + '-save']: true }))}
+                      onPressOut={() => setPressedButton(prev => ({ ...prev, [item.id + '-save']: false }))}
+                    >
                       {item.saved ? (
                         <FontAwesome name="bookmark" size={20} color={themeColors.accent} />
                       ) : (
