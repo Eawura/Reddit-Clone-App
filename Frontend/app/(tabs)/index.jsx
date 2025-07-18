@@ -157,7 +157,8 @@ const Comment = ({ comment, onLike, onReply, themeColors, level = 0 }) => (
       </View>
     </View>
     {/* Render replies recursively */}
-    {comment.replies && comment.replies.length > 0 &&
+    {comment.replies &&
+      comment.replies.length > 0 &&
       comment.replies.map((reply) => (
         <Comment
           key={reply.id}
