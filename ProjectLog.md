@@ -30,7 +30,7 @@ This project is inspired by Reddit’s core features like posting, commenting, a
 
 - **Frontend:** React Native
 - **Backend:** Spring Boot
-- **Databases:** MongoDB and PostgreSQL
+- **Databases:** MySQL
 - **Containerization:** Docker
 - **Tools:** ClickUp (project management), Figma (design mockups)
 
@@ -49,7 +49,7 @@ We used Figma to create UI mockups for our mobile app. These mockups helped us d
 3. Build backend microservices using Spring Boot
 4. Develop the frontend with React Native
 5. Implement user authentication and profile features
-6. Add post creation, viewing, commenting, and voting
+6. Add post-creation, viewing, commenting, and voting
 7. Create real-time notifications and search features
 8. Integrate the special feature
 9. Test the app thoroughly
@@ -69,6 +69,6 @@ We used Figma to create UI mockups for our mobile app. These mockups helped us d
 
 ## 8. Team Contribution
 
-- **Ewura Adwoa Bentsi (Project Manager):** Planned and managed the entire project, handled MongoDB and PostgreSQL setup
+- **Ewura Adwoa Bentsi (Project Manager):** Planned and managed the entire project
 - **Samuel Adom Quayson, Christopher Brobbey Boateng, Emmanuel Asare (Frontend Developers):** Designed the UI in Figma and built the app using React Native
 - **Yussif Mohammed Harris Malgu, Jeffery Obeng Gyasi Agyei, Charles (Backend Developers):** Built backend microservices with Spring Boot, set up APIs, and handled Docker
