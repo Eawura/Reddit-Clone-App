@@ -256,9 +256,9 @@ const Inbox = () => {
   const filteredNotifications = searchText.trim() === '' ? notificationsList : notificationsList.filter(notification => {
     const q = searchText.toLowerCase();
     return (
-      notification.user.toLowerCase().includes(q) ||
-      notification.content.toLowerCase().includes(q) ||
-      notification.action.toLowerCase().includes(q)
+      (typeof notification.user === 'string' && notification.user.toLowerCase().includes(q)) ||
+      (typeof notification.content === 'string' && notification.content.toLowerCase().includes(q)) ||
+      (typeof notification.action === 'string' && notification.action.toLowerCase().includes(q))
     );
   });
 
@@ -266,8 +266,8 @@ const Inbox = () => {
   const filteredMessages = searchText.trim() === '' ? messagesList : messagesList.filter(message => {
     const q = searchText.toLowerCase();
     return (
-      message.user.toLowerCase().includes(q) ||
-      message.lastMessage.toLowerCase().includes(q)
+      (typeof message.user === 'string' && message.user.toLowerCase().includes(q)) ||
+      (typeof message.lastMessage === 'string' && message.lastMessage.toLowerCase().includes(q))
     );
   });
 

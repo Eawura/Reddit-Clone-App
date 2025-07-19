@@ -1,23 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, Image, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Modal, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import ProfileModal from '../../components/ProfileModal';
 import { useChatContext, useTheme } from '../../components/ThemeContext';
 
-// Avatar image mapping
-const imageMap = {
-  'Random.jpg': require('../../assets/images/Random.jpg'),
-  'danny-1.webp': require('../../assets/images/danny-1.webp'),
-  'D.jpg': require('../../assets/images/D.jpg'),
-  'MB.jpg': require('../../assets/images/MB.jpg'),
-  'w1.jpg': require('../../assets/images/w1.jpg'),
-  'K.jpg': require('../../assets/images/K.jpg'),
-  'N.webp': require('../../assets/images/N.webp'),
-  'yu.jpg': require('../../assets/images/yu.jpg'),
-};
+// Helper to get initials from name
+function getInitials(name) {
+  if (!name) return '';
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+// Helper to get a color from a string
+function getColorFromName(name) {
+  const colors = ['#2E45A3', '#25D366', '#FF8C00', '#FF5A5F', '#8E44AD', '#16A085', '#E67E22', '#C0392B'];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
 
-//Chat Header
+// Dummy messages for preview if chat.messages is empty
+const DUMMY_MESSAGES = [
+  { text: 'Hey there! 👋', sender: 'them', timestamp: '2024-06-01T10:00:00Z' },
+  { text: 'Hi! How are you?', sender: 'me', timestamp: '2024-06-01T10:01:00Z' },
+  { text: "I\'m good, thanks! Working on the project.", sender: 'them', timestamp: '2024-06-01T10:02:00Z' },
+  { text: 'Awesome! Let me know if you need help.', sender: 'me', timestamp: '2024-06-01T10:03:00Z' },
+  { text: 'Will do! 😊', sender: 'them', timestamp: '2024-06-01T10:04:00Z' },
+];
+
+// Chat Header
 const ChatHeader = ({ onProfilePress, onSearchPress, onNewChatPress }) => {
   const { themeColors } = useTheme();
   return (
@@ -77,6 +91,33 @@ const ChatRow = ({ chat, onPress, onLongPress }) => {
     return null;
   };
 
+  // Determine last message for preview
+  const lastMsgArr = chat.messages && chat.messages.length > 0 ? chat.messages : DUMMY_MESSAGES;
+  const lastMsgObj = lastMsgArr[lastMsgArr.length - 1] || {};
+  let lastMessagePreview = lastMsgObj.text || '';
+  let lastMessageSender = lastMsgObj.sender;
+  let lastMessageTime = lastMsgObj.timestamp || chat.time || '';
+  // Format preview
+  if (lastMessageSender === 'me') {
+    lastMessagePreview = `You: ${lastMsgObj.text}`;
+  } else if (lastMessageSender === 'them') {
+    lastMessagePreview = `${chat.name}: ${lastMsgObj.text}`;
+  }
+  // Truncate preview
+  if (lastMessagePreview.length > 48) {
+    lastMessagePreview = lastMessagePreview.slice(0, 45) + '...';
+  }
+  // Format time (show only HH:MM or 'Yesterday' if not today)
+  function formatPreviewTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return 'Yesterday';
+  }
+
   return (
     <TouchableOpacity 
       onPress={() => onPress(chat)}
@@ -89,9 +130,13 @@ const ChatRow = ({ chat, onPress, onLongPress }) => {
       ]}
     >
       <View style={[styles.chatRow, { backgroundColor: themeColors.card }]}>
-        {/* Avatar with online status and typing indicator */}
+        {/* Avatar with initials */}
         <View style={styles.avatarContainer}>
-          <Image source={imageMap[chat.avatar]} style={[styles.avatar, { backgroundColor: themeColors.border }]} />
+          <View style={[styles.avatar, { backgroundColor: getColorFromName(chat.name), justifyContent: 'center', alignItems: 'center' }]}> 
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 20 }}>
+              {getInitials(chat.name)}
+            </Text>
+          </View>
           {chat.isOnline && <View style={styles.onlineIndicator} />}
           {chat.isTyping && (
             <View style={styles.typingIndicator}>
@@ -110,8 +155,8 @@ const ChatRow = ({ chat, onPress, onLongPress }) => {
               {getChatTypeIcon()}
             </View>
             <View style={styles.timeContainer}>
-              <Text style={[styles.chatTime, { color: chat.unread > 0 ? themeColors.accent : themeColors.textSecondary }]}>
-                {formatTime(chat.time)}
+              <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginLeft: 4 }}>
+                {formatPreviewTime(lastMessageTime)}
               </Text>
               {chat.isPinned && (
                 <Ionicons name="pin" size={12} color="#8E8E93" style={{ marginLeft: 4 }} />
@@ -129,14 +174,12 @@ const ChatRow = ({ chat, onPress, onLongPress }) => {
               <Text 
                 style={[
                   styles.lastMessage, 
-                  { 
-                    color: chat.unread > 0 ? themeColors.text : themeColors.textSecondary,
-                    fontWeight: chat.unread > 0 ? '600' : '400'
-                  }
+                  lastMessageSender === 'me' && { color: themeColors.textSecondary, fontStyle: 'italic' },
+                  chat.unread > 0 ? { fontWeight: '600' } : { fontWeight: '400' }
                 ]} 
                 numberOfLines={1}
               >
-                {chat.lastMessage}
+                {lastMessagePreview}
               </Text>
             </View>
             
@@ -170,30 +213,39 @@ const Chat = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const { themeColors } = useTheme();
+  // Add user modal state
+  const [addUserModalVisible, setAddUserModalVisible] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
 
   // Filter chats by search text
   const filteredChats = searchText.trim() === '' ? chats : chats.filter(chat => {
     const q = searchText.toLowerCase();
     return (
-      chat.name.toLowerCase().includes(q) ||
-      chat.lastMessage.toLowerCase().includes(q)
+      (chat.name && chat.name.toLowerCase().includes(q)) ||
+      (chat.lastMessage && chat.lastMessage.toLowerCase().includes(q))
     );
   });
 
   const handleSearchIcon = () => setSearchOpen(true);
   const handleCancelSearch = () => { setSearchOpen(false); setSearchText(''); };
   const handleNewChat = () => {
-    console.log('New chat pressed');
+    setAddUserModalVisible(true);
   };
 
   const handleChatPress = (chat) => {
-    // Mark as read in context
     setChats((prevChats) =>
       prevChats.map((c) =>
         c.id === chat.id ? { ...c, unread: 0 } : c
       )
     );
-    router.push({ pathname: '/chatDetail', params: { chat: JSON.stringify(chat) } });
+    router.push({
+      pathname: '/chatDetail',
+      params: {
+        id: chat.id,
+        name: chat.name,
+        messages: JSON.stringify(chat.messages || []),
+      },
+    });
   };
 
   const handleChatLongPress = (chat) => {
@@ -252,6 +304,58 @@ const Chat = () => {
         }} 
         lastTabPath={lastTabPath} 
       />
+      
+      <Modal
+        visible={addUserModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAddUserModalVisible(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ backgroundColor: themeColors.card, padding: 24, borderRadius: 12, width: 300 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 12, color: themeColors.text }}>Add New User</Text>
+            <TextInput
+              placeholder="Enter user name"
+              value={newUserName}
+              onChangeText={setNewUserName}
+              style={{ borderWidth: 1, borderColor: themeColors.border, borderRadius: 8, padding: 8, marginBottom: 16, color: themeColors.text }}
+              placeholderTextColor={themeColors.textSecondary}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <TouchableOpacity onPress={() => setAddUserModalVisible(false)} style={{ marginRight: 12 }}>
+                <Text style={{ color: themeColors.textSecondary }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  if (newUserName.trim()) {
+                    setChats(prev => [
+                      {
+                        id: Date.now().toString(),
+                        name: newUserName,
+                        avatar: 'Random.jpg', // Keep this for now, will be removed from ChatRow
+                        lastMessage: '',
+                        unread: 0,
+                        isOnline: false,
+                        isGroup: false,
+                        isBroadcast: false,
+                        isPinned: false,
+                        isMuted: false,
+                        time: 'Now',
+                        messageStatus: 'sent',
+                      },
+                      ...prev,
+                    ]);
+                    setNewUserName('');
+                    setAddUserModalVisible(false);
+                  }
+                }}
+              >
+                <Text style={{ color: themeColors.accent, fontWeight: 'bold' }}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       
       {/* Chat List */}
       <FlatList

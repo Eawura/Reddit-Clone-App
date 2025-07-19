@@ -510,9 +510,9 @@ const Communities = ({ onJoinCommunity }) => {
     if (searchText.trim() !== '') {
       const q = searchText.toLowerCase();
       filtered = filtered.filter(community => 
-        community.name.toLowerCase().includes(q) ||
-        community.displayName.toLowerCase().includes(q) ||
-        community.description.toLowerCase().includes(q)
+        (community.name && community.name.toLowerCase().includes(q)) ||
+        (community.displayName && community.displayName.toLowerCase().includes(q)) ||
+        (community.description && community.description.toLowerCase().includes(q))
       );
     }
     
