@@ -11,6 +11,8 @@ import PopupMenu from '../../components/PopupMenu';
 import { useTheme } from '../../components/ThemeContext';
 import { getRelativeTime } from '../../utils/timeUtils';
 
+const ACCENT = '#2E45A3';
+
 // Image mapping for profile pictures and post images
 const imageMap = {
   'commenter1.jpg': require('../../assets/images/Commenter1.jpg'),
@@ -703,6 +705,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     letterSpacing: 0.5,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: ACCENT,
+    marginBottom: 18,
+    marginTop: 8, // Add this if needed
+    letterSpacing: 0.2,
+    textAlign: 'center',
   },
 });
 

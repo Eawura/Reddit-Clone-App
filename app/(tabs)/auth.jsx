@@ -3,12 +3,13 @@ import MaskedView from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Image, Linking, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, Image, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import GoogleG from '../../assets/images/google-g.png';
 
 const ACCENT = '#2E45A3';
-const GRADIENT = ['#e8edfa', '#c7d2f7', '#e8edfa'];
+const GRADIENT = ['#e8edfa', '#d1e0ff', '#f5f7fa']; // softer, more modern gradient
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function AuthScreen() {
   const [checked, setChecked] = useState(false);
@@ -58,6 +59,8 @@ export default function AuthScreen() {
   const [genderModalVisible, setGenderModalVisible] = useState(false);
   const [selectedGender, setSelectedGender] = useState('');
   const router = useRouter();
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   // Shake animation effect
   useEffect(() => {
@@ -152,7 +155,7 @@ export default function AuthScreen() {
                 colors={[ACCENT, '#7683F7', '#292F4B']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={{ height: 70, alignItems: 'center', justifyContent: 'center' }}
+                style={{ minHeight: 40, paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}
               >
                 <Text style={[styles.titleGradient, { opacity: 0 }]}>Log in or Sign up</Text>
               </LinearGradient>
@@ -223,89 +226,118 @@ export default function AuthScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            {/* Modal Logo */}
-            <View style={styles.modalLogoWrap}>
-              <Image source={require('../../assets/images/Penguin.jpg')} style={styles.modalLogo} />
-            </View>
-            {/* Modal Title */}
-            <MaskedView
-              maskElement={
-                <Text style={styles.modalTitleGradient}>Log in to Neoping</Text>
-              }
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+          >
+            <ScrollView
+              contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 24 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              style={{ width: '100%' }}
+              alwaysBounceVertical={true}
             >
-              <LinearGradient
-                colors={[ACCENT, '#7683F7', '#292F4B']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{ height: 36, alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Text style={[styles.modalTitleGradient, { opacity: 0 }]}>Log in to Neoping</Text>
-              </LinearGradient>
-            </MaskedView>
-            {/* Email/Username Input */}
-            <Animated.View style={{ width: '100%', transform: [{ translateX: shakeAnim }] }}>
-              <TextInput
-                style={[styles.modalInput, error && styles.inputError]}
-                placeholder="Email or username"
-                placeholderTextColor="#888"
-                value={email}
-                onChangeText={text => { setEmail(text); setError(''); }}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-            </Animated.View>
-            {/* Password Input */}
-            <View style={styles.passwordInputWrap}>
-              <TextInput
-                style={[styles.modalInput, { flex: 1, marginBottom: 0 }, error && styles.inputError]}
-                placeholder="Password"
-                placeholderTextColor="#888"
-                value={password}
-                onChangeText={text => { setPassword(text); setError(''); }}
-                secureTextEntry={!showPassword}
-              />
-              <TouchableOpacity
-                style={styles.eyeIconWrap}
-                onPress={() => setShowPassword((v) => !v)}
-              >
-                <FontAwesome name={showPassword ? 'eye' : 'eye-slash'} size={20} color="#888" />
-              </TouchableOpacity>
-            </View>
-            {/* Error Message */}
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-            {/* Log in Button */}
-            <TouchableOpacity
-              style={[
-                styles.modalLoginBtn,
-                (!email.trim() || !password.trim()) && styles.modalLoginBtnDisabled
-              ]}
-              onPress={validateAndLogin}
-              disabled={!email.trim() || !password.trim() || loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={[
-                  styles.modalLoginText,
-                  (!email.trim() || !password.trim()) && styles.modalLoginTextDisabled
-                ]}>Log in</Text>
-              )}
-            </TouchableOpacity>
-            {/* Links */}
-            <View style={styles.modalLinksRow}>
-              <TouchableOpacity onPress={() => { setForgotModalVisible(true); setModalVisible(false); }}>
-                <Text style={styles.forgotText}>Forgot password?</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => { setLoginLinkModalVisible(true); setModalVisible(false); }}>
-                <Text style={styles.loginLinkText}>Email me a login link instead</Text>
-              </TouchableOpacity>
-            </View>
-            {/* Create Account Link */}
-            <TouchableOpacity style={styles.createAccountBtn} onPress={() => { setCreateAccountModalVisible(true); setModalVisible(false); }}>
-              <Text style={styles.createAccountText}>Create a new account</Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.modalCard}>
+                {/* Logo */}
+                <View style={{ marginBottom: 14 }}>
+                  <Image source={require('../../assets/images/Penguin.jpg')} style={styles.modalLogo} />
+                </View>
+                {/* Title */}
+                <View style={{ height: 6 }} />
+                <MaskedView
+                  maskElement={<Text style={styles.modalTitleGradient}>Log in to Neoping</Text>}
+                  style={{ width: '100%', backgroundColor: 'transparent' }}
+                >
+                  <LinearGradient
+                    colors={[ACCENT, '#7683F7', '#292F4B']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{ minHeight: 36, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', width: '100%' }}
+                  >
+                    <Text style={[styles.modalTitleGradient, { opacity: 0 }]}>Log in to Neoping</Text>
+                  </LinearGradient>
+                </MaskedView>
+                <View style={{ height: 0 }} />
+                {/* Email/Username Input */}
+                <Animated.View style={{ width: '100%', transform: [{ translateX: shakeAnim }], marginTop: 4 }}>
+                  <TextInput
+                    style={[
+                      styles.modalInput,
+                      emailFocused && styles.modalInputFocused,
+                      error && styles.inputError
+                    ]}
+                    placeholder="Email or username"
+                    placeholderTextColor="#888"
+                    value={email}
+                    onChangeText={text => { setEmail(text); setError(''); }}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                  />
+                </Animated.View>
+                {/* Password Input */}
+                <View style={styles.passwordInputWrap}>
+                  <TextInput
+                    style={[
+                      styles.modalInput,
+                      passwordFocused && styles.modalInputFocused,
+                      error && styles.inputError,
+                      { flex: 1, marginBottom: 0 }
+                    ]}
+                    placeholder="Password"
+                    placeholderTextColor="#888"
+                    value={password}
+                    onChangeText={text => { setPassword(text); setError(''); }}
+                    secureTextEntry={!showPassword}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIconWrap}
+                    onPress={() => setShowPassword((v) => !v)}
+                  >
+                    <FontAwesome name={showPassword ? 'eye' : 'eye-slash'} size={20} color="#888" />
+                  </TouchableOpacity>
+                </View>
+                <View style={{ height: 8 }} />
+                {/* Error Message */}
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                {/* Log in Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.modalLoginBtn,
+                    (!email.trim() || !password.trim()) && styles.modalLoginBtnDisabled
+                  ]}
+                  onPress={validateAndLogin}
+                  disabled={!email.trim() || !password.trim() || loading}
+                  activeOpacity={0.85}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={[
+                      styles.modalLoginText,
+                      (!email.trim() || !password.trim()) && styles.modalLoginTextDisabled
+                    ]}>Log in</Text>
+                  )}
+                </TouchableOpacity>
+                {/* Links */}
+                <View style={styles.modalLinksRow}>
+                  <TouchableOpacity onPress={() => { setForgotModalVisible(true); setModalVisible(false); }}>
+                    <Text style={styles.forgotText}>Forgot password?</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { setLoginLinkModalVisible(true); setModalVisible(false); }}>
+                    <Text style={styles.loginLinkText}>Email me a login link instead</Text>
+                  </TouchableOpacity>
+                </View>
+                {/* Create Account Link */}
+                <TouchableOpacity style={styles.createAccountBtn} onPress={() => { setCreateAccountModalVisible(true); setModalVisible(false); }}>
+                  <Text style={styles.createAccountText}>Create a new account</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
       {/* Forgot Password Modal */}
@@ -340,7 +372,7 @@ export default function AuthScreen() {
                 colors={[ACCENT, '#7683F7', '#292F4B']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={{ height: 36, alignItems: 'center', justifyContent: 'center' }}
+                style={{ minHeight: 36, paddingVertical: 4, alignItems: 'center', justifyContent: 'center' }}
               >
                 <Text style={[styles.forgotTitleGradient, { opacity: 0 }]}>Forgot password?</Text>
               </LinearGradient>
@@ -430,7 +462,7 @@ export default function AuthScreen() {
                 colors={[ACCENT, '#7683F7', '#292F4B']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={{ height: 36, alignItems: 'center', justifyContent: 'center' }}
+                style={{ minHeight: 36, paddingVertical: 4, alignItems: 'center', justifyContent: 'center' }}
               >
                 <Text style={[styles.loginLinkTitleGradient, { opacity: 0 }]}>What's your email?</Text>
               </LinearGradient>
@@ -523,7 +555,7 @@ export default function AuthScreen() {
                 colors={[ACCENT, '#7683F7', '#292F4B']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={{ height: 36, alignItems: 'center', justifyContent: 'center' }}
+                style={{ minHeight: 36, paddingVertical: 4, alignItems: 'center', justifyContent: 'center' }}
               >
                 <Text style={[styles.checkInboxTitleGradient, { opacity: 0 }]}>Check your inbox</Text>
               </LinearGradient>
@@ -580,7 +612,7 @@ export default function AuthScreen() {
                 colors={[ACCENT, '#7683F7', '#292F4B']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={{ height: 36, alignItems: 'center', justifyContent: 'center' }}
+                style={{ minHeight: 36, paddingVertical: 4, alignItems: 'center', justifyContent: 'center' }}
               >
                 <Text style={[styles.createAccountTitleGradient, { opacity: 0 }]}>Hi new friend, welcome to Neoping</Text>
               </LinearGradient>
@@ -655,12 +687,14 @@ export default function AuthScreen() {
             {createError ? <Text style={styles.errorTextModern}>{createError}</Text> : null}
             {createSuccess ? <Text style={styles.successTextModern}>{createSuccess}</Text> : null}
             {/* Legal Text */}
-            <Text style={styles.legalTextModern}>
-              By continuing, you agree to our{' '}
-              <Text style={styles.linkModern} onPress={() => Linking.openURL('https://your-user-agreement-url.com')}>User Agreement</Text>
-              {' '}and acknowledge that you understand the{' '}
-              <Text style={styles.linkModern} onPress={() => Linking.openURL('https://your-privacy-policy-url.com')}>Privacy Policy</Text>.
-            </Text>
+            <View style={{ width: '100%', alignItems: 'center' }}>
+              <Text style={[styles.legalTextModern, { width: '90%', textAlign: 'center', alignSelf: 'center' }]}>
+                By continuing, you agree to our{' '}
+                <Text style={styles.linkModern} onPress={() => Linking.openURL('https://your-user-agreement-url.com')}>User Agreement</Text>
+                {' '}and acknowledge that you understand the{' '}
+                <Text style={styles.linkModern} onPress={() => Linking.openURL('https://your-privacy-policy-url.com')}>Privacy Policy</Text>.
+              </Text>
+            </View>
             {/* Log into existing account link */}
             <TouchableOpacity style={styles.createAccountLoginBtn} onPress={() => { setCreateAccountModalVisible(false); setModalVisible(true); }}>
               <Text style={styles.createAccountLoginText}>Log into exiting account</Text>
@@ -698,7 +732,7 @@ export default function AuthScreen() {
                 colors={[ACCENT, '#7683F7', '#292F4B']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={{ height: 36, alignItems: 'center', justifyContent: 'center' }}
+                style={{ minHeight: 36, paddingVertical: 4, alignItems: 'center', justifyContent: 'center' }}
               >
                 <Text style={[styles.verifyTitleGradient, { opacity: 0 }]}>Verify your Email</Text>
               </LinearGradient>
@@ -809,7 +843,7 @@ export default function AuthScreen() {
                 colors={[ACCENT, '#7683F7', '#292F4B']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={{ height: 38, alignItems: 'center', justifyContent: 'center' }}
+                style={{ minHeight: 38, paddingVertical: 4, alignItems: 'center', justifyContent: 'center' }}
               >
                 <Text style={[styles.usernameTitleGradient, { opacity: 0 }]}>Sign Up</Text>
               </LinearGradient>
@@ -935,7 +969,7 @@ export default function AuthScreen() {
                 colors={[ACCENT, '#7683F7', '#292F4B']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={{ height: 36, alignItems: 'center', justifyContent: 'center' }}
+                style={{ minHeight: 36, paddingVertical: 4, alignItems: 'center', justifyContent: 'center' }}
               >
                 <Text style={[styles.genderTitleGradient, { opacity: 0 }]}>About you</Text>
               </LinearGradient>
@@ -984,36 +1018,36 @@ const styles = StyleSheet.create({
   },
   cardModern: {
     width: '92%',
-    backgroundColor: 'rgba(255,255,255,0.90)',
-    borderRadius: 44,
-    paddingVertical: 56,
-    paddingHorizontal: 30,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 48, // more rounded
+    paddingVertical: 24, // was 60
+    paddingHorizontal: 32,
     alignItems: 'center',
-    shadowColor: '#2E45A3',
+    shadowColor: '#1A237E', // deeper blue for modern shadow
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.16,
-    shadowRadius: 40,
-    elevation: 20,
-    marginVertical: 32,
-    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {}),
+    shadowOpacity: 0.22,
+    shadowRadius: 48,
+    elevation: 32,
+    marginVertical: 8, // was 18
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(18px)' } : {}),
   },
   logoWrapModern: {
     alignItems: 'center',
     marginBottom: 24,
   },
   logoModern: {
-    width: 110,
-    height: 110,
+    width: 110, // was 140
+    height: 110, // was 140
     borderRadius: 55,
     borderWidth: 4,
-    borderColor: '#fff',
-    backgroundColor: '#e8edfa',
+    borderColor: '#2E45A3', // user requested color
+    backgroundColor: 'linear-gradient(135deg, #e8edfa 60%, #d1e0ff 100%)', // fallback for RN, will show as solid color
     marginBottom: 10,
     shadowColor: '#2E45A3',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 10,
   },
   titleGradient: {
     textAlign: 'center',
@@ -1221,63 +1255,71 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '92%',
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderRadius: 44,
-    paddingVertical: 48,
-    paddingHorizontal: 30,
+    maxHeight: SCREEN_HEIGHT * 0.85,
+    backgroundColor: '#fff',
+    borderRadius: 36, // more rounded
+    paddingVertical: 14, // was 24
+    paddingHorizontal: 26,
     alignItems: 'center',
-    shadowColor: '#2E45A3',
+    shadowColor: '#1A237E',
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.16,
-    shadowRadius: 40,
-    elevation: 20,
-    marginVertical: 32,
-    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {}),
+    shadowOpacity: 0.22,
+    shadowRadius: 48,
+    elevation: 32,
+    marginVertical: 6, // was 16
+    paddingTop: 14, // was 24
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(18px)' } : {}),
   },
   modalLogoWrap: {
     alignItems: 'center',
     marginBottom: 12,
   },
   modalLogo: {
-    width: 120,
-    height: 120,
+    width: 120, // was 150
+    height: 120, // was 150
     borderRadius: 60,
     borderWidth: 4,
-    borderColor: '#fff',
-    backgroundColor: '#e8edfa',
+    borderColor: '#2E45A3', // user requested color
+    backgroundColor: 'linear-gradient(135deg, #e8edfa 60%, #d1e0ff 100%)', // fallback for RN, will show as solid color
     marginBottom: 12,
     shadowColor: '#2E45A3',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 10,
   },
   modalTitle: {
-    textAlign: 'center',
     fontSize: 22,
     fontWeight: '700',
-    marginBottom: 18,
+    color: ACCENT,
+    marginBottom: 24,
+    marginTop: 12,
     letterSpacing: 0.2,
+    textAlign: 'center',
   },
   modalTitleGradient: {
     textAlign: 'center',
-    fontSize: 26,
+    fontSize: 32, // was 26
     fontWeight: '900',
     marginBottom: 24,
-    lineHeight: 32,
+    lineHeight: 38, // adjust for new font size
     letterSpacing: 0.5,
   },
   modalInput: {
     width: '100%',
     backgroundColor: '#f7f8fa',
-    borderRadius: 22,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    fontSize: 17,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderRadius: 24,
+    paddingVertical: 12, // was 18
+    paddingHorizontal: 22,
+    fontSize: 18,
+    marginBottom: 14, // was 24
+    borderWidth: 0, // remove harsh border
     color: '#222',
+    shadowColor: '#2E45A3',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   passwordInputWrap: {
     flexDirection: 'row',
@@ -1301,26 +1343,31 @@ const styles = StyleSheet.create({
   },
   modalLoginBtn: {
     backgroundColor: ACCENT,
-    borderRadius: 22,
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    marginTop: 4,
-    marginBottom: 18,
+    borderRadius: 28,
+    paddingVertical: 12, // was 18
+    paddingHorizontal: 44,
+    marginTop: 8,
+    marginBottom: 14, // was 24
     width: '100%',
     alignItems: 'center',
+    minHeight: 40, // was 48
     shadowColor: ACCENT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 3,
-    transitionDuration: '0.2s',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 5,
+    overflow: 'hidden',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
+  },
+  modalLoginBtnGradient: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 28,
   },
   modalLoginText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 0.2,
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   modalLoginBtnDisabled: {
     backgroundColor: '#e0e0e0',
@@ -1350,6 +1397,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     width: '100%',
     alignItems: 'center',
+    minHeight: 44,
   },
   createAccountText: {
     color: ACCENT,
@@ -1366,7 +1414,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   inputError: {
+    borderWidth: 1.5,
     borderColor: '#e74c3c',
+  },
+  modalInputFocused: {
+    backgroundColor: '#eef2fb',
+    shadowOpacity: 0.10,
+    borderWidth: 1.5,
+    borderColor: ACCENT,
   },
   forgotCard: {
     width: '92%',
@@ -1375,11 +1430,11 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
     paddingHorizontal: 30,
     alignItems: 'center',
-    shadowColor: '#2E45A3',
+    shadowColor: '#1A237E',
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.16,
-    shadowRadius: 40,
-    elevation: 20,
+    shadowOpacity: 0.22,
+    shadowRadius: 48,
+    elevation: 32,
     marginVertical: 32,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {}),
   },
@@ -1425,11 +1480,11 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
     paddingHorizontal: 30,
     alignItems: 'center',
-    shadowColor: '#2E45A3',
+    shadowColor: '#1A237E',
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.16,
-    shadowRadius: 40,
-    elevation: 20,
+    shadowOpacity: 0.22,
+    shadowRadius: 48,
+    elevation: 32,
     marginVertical: 32,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {}),
   },
@@ -1455,11 +1510,11 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
     paddingHorizontal: 30,
     alignItems: 'center',
-    shadowColor: '#2E45A3',
+    shadowColor: '#1A237E',
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.16,
-    shadowRadius: 40,
-    elevation: 20,
+    shadowOpacity: 0.22,
+    shadowRadius: 48,
+    elevation: 32,
     marginVertical: 32,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {}),
   },
@@ -1517,11 +1572,12 @@ const styles = StyleSheet.create({
     paddingVertical: 56,
     paddingHorizontal: 34,
     alignItems: 'center',
-    shadowColor: '#2E45A3',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.18,
+    justifyContent: 'center',
+    shadowColor: '#1A237E',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.22,
     shadowRadius: 48,
-    elevation: 24,
+    elevation: 32,
     marginVertical: 36,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)' } : {}),
   },
@@ -1566,10 +1622,10 @@ const styles = StyleSheet.create({
   modalLoginBtn: {
     backgroundColor: ACCENT,
     borderRadius: 28,
-    paddingVertical: 18,
+    paddingVertical: 12, // was 18
     paddingHorizontal: 44,
     marginTop: 4,
-    marginBottom: 22,
+    marginBottom: 14, // was 22
     width: '100%',
     alignItems: 'center',
     shadowColor: ACCENT,
@@ -1579,6 +1635,7 @@ const styles = StyleSheet.create({
     elevation: 4,
     transitionDuration: '0.2s',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
+    minHeight: 40, // was 44
   },
   verifyCard: {
     width: '92%',
@@ -1587,11 +1644,11 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
     paddingHorizontal: 30,
     alignItems: 'center',
-    shadowColor: '#2E45A3',
+    shadowColor: '#1A237E',
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.16,
-    shadowRadius: 40,
-    elevation: 20,
+    shadowOpacity: 0.22,
+    shadowRadius: 48,
+    elevation: 32,
     marginVertical: 32,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {}),
   },
@@ -1649,11 +1706,11 @@ const styles = StyleSheet.create({
     paddingVertical: 56,
     paddingHorizontal: 34,
     alignItems: 'center',
-    shadowColor: '#2E45A3',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.18,
+    shadowColor: '#1A237E',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.22,
     shadowRadius: 48,
-    elevation: 24,
+    elevation: 32,
     marginVertical: 36,
   },
   usernameTopRow: {
@@ -1760,6 +1817,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     transitionDuration: '0.2s',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
+    minHeight: 44,
   },
   usernameContinueText: {
     color: '#fff',
@@ -1774,11 +1832,11 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
     paddingHorizontal: 30,
     alignItems: 'center',
-    shadowColor: '#2E45A3',
+    shadowColor: '#1A237E',
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.16,
-    shadowRadius: 40,
-    elevation: 20,
+    shadowOpacity: 0.22,
+    shadowRadius: 48,
+    elevation: 32,
     marginVertical: 32,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {}),
   },
