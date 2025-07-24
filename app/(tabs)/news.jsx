@@ -12,6 +12,7 @@ import { useNews } from '../../components/NewsContext';
 import PopupMenu from '../../components/PopupMenu';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
+import { formatNumber } from '../../utils/numberUtils';
 import { getRelativeTime } from '../../utils/timeUtils';
 
 // Image mapping for profile pictures and news images
@@ -247,7 +248,7 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
                 color={news.upvoted ? '#2E45A3' : themeColors.textSecondary}
           />
             </Animated.View>
-            <Text style={[styles.newsActionText, { color: news.upvoted ? '#2E45A3' : themeColors.textSecondary }]}> {formatCount(news.upvotes)} </Text>
+            <Text style={[styles.newsActionText, { color: news.upvoted ? '#2E45A3' : themeColors.textSecondary }]}> {formatNumber(news.upvotes)} </Text>
         </TouchableOpacity>
           <TouchableOpacity
             style={[styles.newsActionButton, pressedButton[news.id + '-downvote'] && { backgroundColor: '#fdeaea' }]}
@@ -268,7 +269,7 @@ const NewsCard = ({ news, onUpvote, onDownvote, onComment, onShare, onImagePress
             accessible accessibilityLabel="Comment on news"
           >
           <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
-          <Text style={[styles.newsActionText, { color: themeColors.textSecondary }]}>{formatCount(news.comments)}</Text>
+          <Text style={[styles.newsActionText, { color: themeColors.textSecondary }]}>{formatNumber(news.comments)}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.newsActionGroup}>
@@ -684,20 +685,12 @@ const News = () => {
   };
 
   const handleProfilePress = (news) => {
-    console.log('DEBUG: handleProfilePress avatar:', news.avatar, 'for news id:', news.id);
-    // Find all news posts for this user
-    const userNewsPosts = demoNews.filter(n => n.user === news.user);
     router.push({
       pathname: '/profile',
       params: {
-        user: JSON.stringify({
-        user: news.user,
-          avatar: news.avatar,
-          id: news.id,
-        }),
-        from: 'news',
-        newsPosts: JSON.stringify(userNewsPosts),
-        selectedPost: JSON.stringify(news),
+        userId: news.id,
+        username: news.user,
+        avatar: news.avatar,
       },
     });
   };

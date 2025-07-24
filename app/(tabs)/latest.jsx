@@ -9,6 +9,7 @@ import ImageModal from '../../components/ImageModal';
 import MoreMenu from '../../components/MoreMenu';
 import PopupMenu from '../../components/PopupMenu';
 import { useTheme } from '../../components/ThemeContext';
+import { formatNumber } from '../../utils/numberUtils';
 import { getRelativeTime } from '../../utils/timeUtils';
 
 const ACCENT = '#2E45A3';
@@ -36,12 +37,6 @@ const imageMap = {
   'BM.png': require('../../assets/images/BM.png'),
   'p.png': require('../../assets/images/p.png'),
   'Dis.png': require('../../assets/images/Dis.png'),
-};
-
-const formatCount = (num) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-  return num;
 };
 
 const demoPosts = [
@@ -205,7 +200,7 @@ const LatestCard = ({ post, onUpvote, onDownvote, onComment, onSave, themeColors
             <Animated.View style={{ transform: [{ scale: upvoteScale }] }}>
               <AntDesign name={post.upvoted ? 'arrowup' : 'arrowup'} size={20} color={post.upvoted ? '#2E45A3' : themeColors.textSecondary} />
             </Animated.View>
-            <Text style={[styles.newsActionText, { color: post.upvoted ? '#2E45A3' : themeColors.textSecondary }]}>{formatCount(post.upvotes)}</Text>
+            <Text style={[styles.newsActionText, { color: post.upvoted ? '#2E45A3' : themeColors.textSecondary }]}>{formatNumber(post.upvotes)}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.newsActionButton, pressedButton[post.id + '-downvote'] && { backgroundColor: '#fdeaea' }]}
@@ -218,7 +213,7 @@ const LatestCard = ({ post, onUpvote, onDownvote, onComment, onSave, themeColors
           </TouchableOpacity>
           <TouchableOpacity style={styles.newsActionButton} onPress={() => onComment(post.id)} accessible accessibilityLabel="Comment on post">
             <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
-            <Text style={[styles.newsActionText, { color: themeColors.textSecondary }]}>{formatCount(post.comments)}</Text>
+            <Text style={[styles.newsActionText, { color: themeColors.textSecondary }]}>{formatNumber(post.comments)}</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.newsActionGroup}>
@@ -361,19 +356,12 @@ const Latest = () => {
   };
 
   const handleProfilePress = (post) => {
-    // Find all posts for this user
-    const userPosts = posts.filter(p => p.user === post.user);
     router.push({
       pathname: '/profile',
       params: {
-        user: JSON.stringify({
-          user: post.user,
-          avatar: post.avatar,
-          id: post.id,
-        }),
-        from: 'latest',
-        newsPosts: JSON.stringify(userPosts),
-        selectedPost: JSON.stringify(post),
+        userId: post.id,
+        username: post.user,
+        avatar: post.avatar,
       },
     });
   };

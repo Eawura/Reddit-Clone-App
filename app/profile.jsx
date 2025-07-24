@@ -1,15 +1,10 @@
-import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import CommentModal from '../components/CommentModal';
-import ImageModal from '../components/ImageModal';
+import { AntDesign } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useRef, useState } from 'react';
+import { FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { usePosts } from '../components/PostContext';
-import { useProfile } from '../components/ProfileContext';
 import { useTheme } from '../components/ThemeContext';
+import { formatNumber } from '../utils/numberUtils';
 import { getRelativeTime } from '../utils/timeUtils';
 
 const imageMap = {
@@ -72,557 +67,138 @@ const imageMap = {
   'Dis.png': require('../assets/images/Dis.png'),
 };
 
-// Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)
-function formatCount(num) {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-  }
-  return num;
-}
-
 const ProfileView = () => {
   const { themeColors } = useTheme();
   const router = useRouter();
-  const { user: userParam, from, newsPosts, selectedPost: selectedPostParam } = useLocalSearchParams();
-  const { profile: currentUser } = useProfile();
-  const { posts: globalPosts, setPosts } = usePosts();
-  let user = {};
-  try {
-    user = typeof userParam === 'string' ? JSON.parse(userParam) : userParam || {};
-  } catch {
-    user = userParam || {};
-  }
-  // Get userId from params (could be id or username)
-  const userId = user.id;
-  const username = (user.user || user.author || user.id || '').trim();
-  const normalizedUsername = username.toLowerCase();
-  // Debug logs for filtering
-  let allUserFields = [];
-  let posts = [];
-  if (newsPosts) {
-    try {
-      let parsedNewsPosts = typeof newsPosts === 'string' ? JSON.parse(newsPosts) : newsPosts;
-      // Map likes to upvotes if upvotes is undefined
-      parsedNewsPosts = Array.isArray(parsedNewsPosts)
-        ? parsedNewsPosts.map(p => ({ ...p, upvotes: p.upvotes !== undefined ? p.upvotes : (p.likes !== undefined ? p.likes : 0) }))
-        : [];
-      allUserFields = Array.isArray(parsedNewsPosts) ? parsedNewsPosts.map(p => (p.user || '').trim().toLowerCase()) : [];
-      posts = Array.isArray(parsedNewsPosts)
-        ? parsedNewsPosts.filter(p => (p.user || '').trim().toLowerCase() === normalizedUsername)
-        : [];
-    } catch {
-      posts = [];
-    }
-  } else {
-    allUserFields = Array.isArray(globalPosts) ? globalPosts.map(p => (p.user || '').trim().toLowerCase()) : [];
-    posts = Array.isArray(globalPosts)
-      ? globalPosts.filter(p => (p.user || '').trim().toLowerCase() === normalizedUsername)
-      : [];
-  }
-  console.log('DEBUG: Profile normalized username:', normalizedUsername);
-  console.log('DEBUG: All compared user fields:', allUserFields);
-
-  let selectedPostObj = null;
-  try {
-    selectedPostObj = selectedPostParam ? (typeof selectedPostParam === 'string' ? JSON.parse(selectedPostParam) : selectedPostParam) : null;
-  } catch {
-    selectedPostObj = null;
-  }
-
-  // Demo commenters for all posts
-  const demoCommenters = [
-    { username: 'u/Commenter1', avatar: 'commenter1.jpg', text: 'This is amazing! Love the content.', time: '2 hours ago', likes: 12 },
-    { username: 'u/Commenter2', avatar: 'commenter2.jpg', text: 'Great post! Thanks for sharing this.', time: '1 hour ago', likes: 8 },
-    { username: 'u/Commenter3', avatar: 'commenter3.jpg', text: 'I totally agree with this. Well said!', time: '30 minutes ago', likes: 5 },
-  ];
-  // Local state for profile posts (for button interactions)
-  const [profilePosts, setProfilePosts] = useState(() => posts.map(post => ({ ...post, comments: 3, commentsList: demoCommenters.map((c, i) => ({ ...c, id: i + 1, liked: false })) })));
-
-  // Handlers for actions
-  const handleLike = (id) => {
-    setPosts(posts => posts.map(p => p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? (p.likes || 0) - 1 : (p.likes || 0) + 1 } : p));
-    setProfilePosts(posts => posts.map(p => {
-      if (p.id === id) {
-        const updated = { ...p, liked: !p.liked, likes: p.liked ? (p.likes || 0) - 1 : (p.likes || 0) + 1 };
-        return updated;
-      }
-      return p;
-    }));
-  };
-  const handleUpvote = (id) => {
-    setPosts(posts => posts.map(p => {
-      if (p.id === id) {
-        if (p.upvoted) {
-          return { ...p, upvoted: false, downvoted: false, upvotes: (p.upvotes ?? 0) - 1 };
-        }
-        if (p.downvoted) {
-          return { ...p, upvoted: true, downvoted: false, upvotes: (p.upvotes ?? 0) + 1 };
-        }
-        return { ...p, upvoted: true, downvoted: false, upvotes: (p.upvotes ?? 0) + 1 };
-      }
-      return p;
-    }));
-    setProfilePosts(posts => posts.map(p => {
-      if (p.id === id) {
-        let updated;
-        if (p.upvoted) {
-          updated = { ...p, upvoted: false, downvoted: false, upvotes: (p.upvotes ?? 0) - 1 };
-        } else if (p.downvoted) {
-          updated = { ...p, upvoted: true, downvoted: false, upvotes: (p.upvotes ?? 0) + 1 };
-        } else {
-          updated = { ...p, upvoted: true, downvoted: false, upvotes: (p.upvotes ?? 0) + 1 };
-        }
-        return updated;
-      }
-      return p;
-    }));
-  };
-  const handleDownvote = (id) => {
-    setPosts(posts => posts.map(p => {
-      if (p.id === id) {
-        if (p.downvoted) {
-          return { ...p, downvoted: false };
-        }
-        if (p.upvoted) {
-          return { ...p, upvoted: false, downvoted: true, upvotes: (p.upvotes ?? 0) - 1 };
-        }
-        return { ...p, downvoted: true };
-      }
-      return p;
-    }));
-    setProfilePosts(posts => posts.map(p => {
-      if (p.id === id) {
-        let updated;
-        if (p.downvoted) {
-          updated = { ...p, downvoted: false };
-        } else if (p.upvoted) {
-          updated = { ...p, upvoted: false, downvoted: true, upvotes: (p.upvotes ?? 0) - 1 };
-        } else {
-          updated = { ...p, downvoted: true };
-        }
-        return updated;
-      }
-      return p;
-    }));
-  };
-  const handleSave = (id) => {
-    setPosts(posts => posts.map(p => p.id === id ? { ...p, saved: !p.saved } : p));
-    setProfilePosts(posts => posts.map(p => {
-      if (p.id === id) {
-        const updated = { ...p, saved: !p.saved };
-        return updated;
-      }
-      return p;
-    }));
-  };
-  const handleComment = (id) => {
-    const post = profilePosts.find(p => p.id === id);
-    setSelectedPost(post);
-    setComments(post?.commentsList || []); // Use post.commentsList if available, else empty
-    setCommentModalVisible(true);
-  };
-  const handleShare = (id) => {
-    alert('Share post ' + id);
-  };
-
-  // Simulate dynamic followers/following and follow state
+  const { userId, username, avatar, followers: followersParam, following: followingParam } = useLocalSearchParams();
+  const { posts: globalPosts } = usePosts();
+  const [activeTab, setActiveTab] = useState('Posts');
   const [isFollowing, setIsFollowing] = useState(false);
-  const [followers, setFollowers] = useState(user.followers || Math.floor(Math.random() * 1000) + 100);
-  const [following] = useState(user.following || Math.floor(Math.random() * 200) + 50);
-  const [profile, setProfile] = useState({
-    username: user?.user || user?.author || 'User',
-    bio: user.bio || 'No bio yet.',
-    avatar: user.avatar || 'commenter1.jpg',
-  });
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editUsername, setEditUsername] = useState(profile.username);
-  const [editBio, setEditBio] = useState(profile.bio);
-  const [editAvatar, setEditAvatar] = useState(profile.avatar);
-  const [avatarUri, setAvatarUri] = useState(null);
+  const [followers] = useState(followersParam ? parseInt(followersParam, 10) : 1234);
+  const [following] = useState(followingParam ? parseInt(followingParam, 10) : 56);
+  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const joinedDate = 'Joined Jan 2022';
+  const fullName = username ? username.replace(/^u\//, '').replace(/_/g, ' ') : 'User';
+  const atUsername = username ? `@${username.replace(/^u\//, '').replace(/\s+/g, '').toLowerCase()}` : '@user';
+  const bio = 'This is a sample bio. You can add more info here.';
+  const userPosts = globalPosts.filter(p => (p.user || '').toLowerCase() === (username || '').toLowerCase());
+  const bannerHeight = 140;
+  const avatarSize = 96;
+  const flatListRef = useRef(null);
 
-  const handleFollow = () => {
-    setIsFollowing(f => !f);
-    setFollowers(f => isFollowing ? f - 1 : f + 1);
-  };
+  // Header for FlatList
+  const renderHeader = () => (
+    <>
+      {/* Back Icon */}
+      <TouchableOpacity
+        onPress={() => router.back()}
+        style={{ position: 'absolute', top: 36, left: 16, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 20, padding: 4 }}
+        activeOpacity={0.7}
+      >
+        <AntDesign name="arrowleft" size={26} color="#222" />
+      </TouchableOpacity>
+      {/* Banner */}
+      <View style={{ height: bannerHeight, backgroundColor: '#d9d9d9', width: '100%' }} />
+      {/* Avatar - overlaps banner */}
+      <View style={{ position: 'absolute', top: bannerHeight - avatarSize / 2, left: 16, zIndex: 2 }}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => setAvatarModalVisible(true)}>
+          <Image source={avatar && imageMap[avatar] ? imageMap[avatar] : require('../assets/images/Commenter1.jpg')} style={{ width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2, borderWidth: 4, borderColor: themeColors.background, backgroundColor: '#eee' }} />
+        </TouchableOpacity>
+      </View>
+      {/* Avatar Fullscreen Modal */}
+      <Modal visible={avatarModalVisible} transparent animationType="fade" onRequestClose={() => setAvatarModalVisible(false)}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={() => setAvatarModalVisible(false)}>
+          <Image source={avatar && imageMap[avatar] ? imageMap[avatar] : require('../assets/images/Commenter1.jpg')} style={{ width: 280, height: 280, borderRadius: 140, borderWidth: 4, borderColor: '#fff', backgroundColor: '#eee' }} />
+        </TouchableOpacity>
+      </Modal>
+      {/* Profile Info */}
+      <View style={{ marginTop: avatarSize / 2 + 12, paddingHorizontal: 16 }}>
+        <Text style={{ fontSize: 22, fontWeight: 'bold', color: themeColors.text }}>{fullName}</Text>
+        <Text style={{ color: themeColors.textSecondary, fontSize: 16, marginTop: 2 }}>{atUsername}</Text>
+        <Text style={{ color: themeColors.textSecondary, fontSize: 14, marginTop: 2 }}>{joinedDate}</Text>
+        <Text style={{ color: themeColors.text, fontSize: 15, marginTop: 10 }}>{bio}</Text>
+        {/* Stats Row */}
+        <View style={{ flexDirection: 'row', marginTop: 14, marginBottom: 8 }}>
+          <Text style={{ fontWeight: 'bold', color: themeColors.text, fontSize: 15 }}>{formatNumber(following)}</Text>
+          <Text style={{ color: themeColors.textSecondary, fontSize: 15, marginRight: 18, marginLeft: 4 }}>Following</Text>
+          <Text style={{ fontWeight: 'bold', color: themeColors.text, fontSize: 15 }}>{formatNumber(followers)}</Text>
+          <Text style={{ color: themeColors.textSecondary, fontSize: 15, marginLeft: 4 }}>Followers</Text>
+        </View>
+        <View style={{ flexDirection: 'row', marginTop: 8 }}>
+          <TouchableOpacity style={{ backgroundColor: themeColors.accent, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 8, marginRight: 10 }} onPress={() => setIsFollowing(f => !f)}>
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>{isFollowing ? 'Following' : 'Follow'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={{ backgroundColor: '#e0e0e0', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 8 }}>
+            <Text style={{ color: themeColors.text, fontWeight: 'bold' }}>Message</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      {/* Top Tab Bar */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-around', borderBottomWidth: 1, borderColor: '#eee', marginTop: 18, marginBottom: 8 }}>
+        {['Posts', 'Replies', 'Media', 'Likes'].map(tab => (
+          <TouchableOpacity
+            key={tab}
+            onPress={() => {
+              setActiveTab(tab);
+              if (tab === 'Posts' && flatListRef.current) {
+                flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+              }
+            }}
+            style={{ paddingVertical: 12, borderBottomWidth: 2, borderColor: activeTab === tab ? themeColors.accent : 'transparent', flex: 1, alignItems: 'center' }}
+          >
+            <Text style={{ color: activeTab === tab ? themeColors.accent : themeColors.textSecondary, fontWeight: 'bold', fontSize: 16 }}>{tab}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </>
+  );
 
-  const openEditModal = () => {
-    setEditUsername(profile.username);
-    setEditBio(profile.bio);
-    setEditAvatar(profile.avatar);
-    setAvatarUri(null);
-    setEditModalVisible(true);
-  };
-
-  const handleSaveEdit = () => {
-    setProfile({
-      username: editUsername,
-      bio: editBio,
-      avatar: avatarUri ? avatarUri : editAvatar,
-    });
-    setEditModalVisible(false);
-  };
-
-  const pickAvatar = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled && result.assets && result.assets[0].uri) {
-      setAvatarUri(result.assets[0].uri);
-    }
-  };
-
-  const isCurrentUser = (user?.user || user?.author || 'User') === (currentUser?.username || 'User');
-
-  // Get avatar and username for the profile header
-  let displayAvatar = null;
-  let displayUsername = null;
-  let showInitials = false;
-  let initials = '';
-  let headerAvatarKey = '';
-  if (selectedPostObj && selectedPostObj.avatar) {
-    displayUsername = typeof selectedPostObj.user === 'object' ? selectedPostObj.user.name || profile.username : selectedPostObj.user;
-    headerAvatarKey = (selectedPostObj.avatar || '').trim();
-    if (headerAvatarKey && imageMap[headerAvatarKey]) {
-      displayAvatar = imageMap[headerAvatarKey];
-      showInitials = false;
-    } else if (headerAvatarKey && headerAvatarKey.startsWith('http')) {
-      displayAvatar = { uri: headerAvatarKey };
-      showInitials = false;
-    } else {
-      showInitials = true;
-    }
-  } else if (posts[0] && posts[0].avatar) {
-    displayUsername = typeof posts[0].user === 'object' ? posts[0].user.name || profile.username : posts[0].user;
-    headerAvatarKey = (posts[0].avatar || '').trim();
-    if (headerAvatarKey && imageMap[headerAvatarKey]) {
-      displayAvatar = imageMap[headerAvatarKey];
-      showInitials = false;
-    } else if (headerAvatarKey && headerAvatarKey.startsWith('http')) {
-      displayAvatar = { uri: headerAvatarKey };
-      showInitials = false;
-    } else {
-      showInitials = true;
-    }
-  } else {
-    displayUsername = profile.username;
-    showInitials = true;
+  // Data and render logic for FlatList
+  let data = [];
+  let emptyComponent = null;
+  if (activeTab === 'Posts') {
+    data = userPosts;
+    emptyComponent = <View style={{ alignItems: 'center', marginTop: 32 }}><Text style={{ color: themeColors.textSecondary }}>No posts yet.</Text></View>;
+  } else if (activeTab === 'Replies') {
+    data = [];
+    emptyComponent = <View style={{ alignItems: 'center', marginTop: 32 }}><Text style={{ color: themeColors.textSecondary }}>No replies yet.</Text></View>;
+  } else if (activeTab === 'Media') {
+    data = [];
+    emptyComponent = <View style={{ alignItems: 'center', marginTop: 32 }}><Text style={{ color: themeColors.textSecondary }}>No media yet.</Text></View>;
+  } else if (activeTab === 'Likes') {
+    data = [];
+    emptyComponent = <View style={{ alignItems: 'center', marginTop: 32 }}><Text style={{ color: themeColors.textSecondary }}>No liked posts yet.</Text></View>;
   }
-  if (showInitials && displayUsername) {
-    initials = displayUsername
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  }
-
-  const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [commentModalVisible, setCommentModalVisible] = useState(false);
-  const [selectedPost, setSelectedPost] = useState(null);
-  const [comments, setComments] = useState([]);
-  const [pressedButton, setPressedButton] = useState({});
-
-  // Add handlers for comment modal
-  const handleAddComment = (text, replyingTo = null) => {
-    const newComment = {
-      id: Date.now(),
-      username: displayUsername,
-      text: text,
-      time: 'Just now',
-      likes: 0,
-      liked: false,
-      replyingTo: replyingTo
-    };
-    setComments(prev => [newComment, ...prev]);
-    setProfilePosts(posts => posts.map(post => {
-      if (post.id === selectedPost.id) {
-        const updated = { ...post, comments: (post.comments ?? 0) + 1, commentsList: [newComment, ...(post.commentsList || [])] };
-        return updated;
-      }
-      return post;
-    }));
-    setPosts(posts => posts.map(post => post.id === selectedPost.id ? { ...post, comments: (post.comments ?? 0) + 1 } : post));
-  };
-  const handleLikeComment = (commentId) => {
-    setComments(comments => comments.map(comment => {
-      if (comment.id === commentId) {
-        if (comment.liked) {
-          return { ...comment, liked: false, likes: comment.likes - 1 };
-        } else {
-          return { ...comment, liked: true, likes: comment.likes + 1 };
-        }
-      }
-      return comment;
-    }));
-  };
-
-  // userPosts is now always profilePosts
-  const userPosts = profilePosts;
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}> 
-      <LinearGradient
-        colors={[themeColors.accent + '22', themeColors.background]}
-        style={styles.gradientHeader}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-      >
-        <TouchableOpacity
-          onPress={() => {
-            const validTabs = ['popular', 'latest', 'news'];
-            if (from === 'root') {
-              router.replace('/(tabs)');
-            } else if (from && validTabs.includes(from)) {
-              router.replace('/(tabs)/' + from);
-            } else {
-              router.back();
-            }
-          }}
-          style={styles.backButton}
-          accessibilityLabel="Go back"
-        >
-          <Text style={{ color: themeColors.accent, fontSize: 18 }}>{'< Back'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.settingsButton} accessibilityLabel="Settings">
-          <Ionicons name="settings-outline" size={24} color={themeColors.icon} />
-        </TouchableOpacity>
-        <View style={styles.profileCard}>
-          <TouchableOpacity onPress={isCurrentUser ? pickAvatar : undefined} accessibilityLabel="Change avatar" disabled={!isCurrentUser}>
-            {showInitials ? (
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: themeColors.accent + '33', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: themeColors.accent, fontWeight: 'bold', fontSize: 18 }}>{initials}</Text>
-              </View>
-            ) : (
-              <Image source={displayAvatar} style={styles.avatar} />
-            )}
-          </TouchableOpacity>
-          <Text style={[styles.username, { color: themeColors.text }]}>{displayUsername}</Text>
-          <Text style={[styles.bio, { color: themeColors.textSecondary }]}>{profile.bio}</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>{posts.length}</Text>
-              <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>Posts</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>{followers}</Text>
-              <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>Followers</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>{following}</Text>
-              <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>Following</Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            style={[styles.followButton, { backgroundColor: isFollowing ? themeColors.background : themeColors.accent, borderWidth: 1, borderColor: themeColors.accent }]}
-            onPress={handleFollow}
-            accessibilityLabel={isFollowing ? 'Unfollow' : 'Follow'}
-          > 
-            <Text style={{ color: isFollowing ? themeColors.accent : '#fff', fontWeight: 'bold' }}>{isFollowing ? 'Following' : 'Follow'}</Text>
-          </TouchableOpacity>
-          {isCurrentUser && (
-            <TouchableOpacity style={styles.editButton} onPress={openEditModal} accessibilityLabel="Edit profile">
-              <Text style={{ color: themeColors.accent, fontWeight: 'bold' }}>Edit Profile</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </LinearGradient>
-      <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
-      <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Posts</Text>
-      {posts.length === 0 ? (
-        <Text style={{ color: themeColors.textSecondary, textAlign: 'center', marginTop: 24 }}>No posts available.</Text>
-      ) : (
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
       <FlatList
-          data={userPosts}
-          keyExtractor={(item, idx) => item.id ? item.id.toString() : idx.toString()}
-          renderItem={({ item }) => {
-            // Robust debug log for image and avatar lookup
-            const avatarKey = (item.avatar || '').trim();
-            const imageKey = (item.image || '').trim();
-            const avatarSource = imageMap[avatarKey];
-            const imageSource = imageMap[imageKey];
-            console.log('DEBUG: Profile post', {
-              id: item.id,
-              user: item.user,
-              avatar: avatarKey,
-              avatarSource,
-              image: imageKey,
-              imageSource,
-              imageMapKeys: Object.keys(imageMap),
-            });
-            const isNewsPost = !!newsPosts;
-            return (
-              <View style={[styles.postContainer, { backgroundColor: themeColors.card, borderColor: themeColors.border, marginBottom: 16, borderWidth: 1 }]}>                {/* Post Header */}
-                <View style={styles.userInfo}>
-                  <Image
-                    source={avatarSource ? avatarSource : require('../assets/images/Commenter1.jpg')}
-                    style={styles.avatar}
-                  />
-                  <View style={styles.userDetails}>
-                    <Text style={[styles.username, { color: themeColors.text }]}>{item.user || 'Unknown User'}</Text>
-                    <Text style={[styles.postTime, { color: themeColors.textSecondary }]}>{getRelativeTime(item.timestamp)}</Text>
-                  </View>
-                </View>
-                {/* Post Content */}
-                <View style={styles.postContent}>
-                  <Text style={[styles.postTitle, { color: themeColors.text }]}>{item.title || '[No Title]'}</Text>
-                  {item.image && (
-                    <TouchableOpacity onPress={() => { setSelectedImage(imageSource ? imageSource : require('../assets/images/Random.jpg')); setImageModalVisible(true); }} accessibilityLabel="View image">
-                      <Image
-                        source={imageSource ? imageSource : require('../assets/images/Random.jpg')}
-                        style={styles.postImage}
-                        resizeMode="cover"
-                      />
-                    </TouchableOpacity>
-                  )}
-                </View>
-                {/* Post Actions */}
-                <View style={styles.postActionsRow}>
-                  <View style={styles.actionGroupLeft}>
-                    {isNewsPost ? (
-                      <>
-                        <TouchableOpacity
-                          style={[styles.actionButton, pressedButton[item.id + '-upvote'] && { backgroundColor: '#e8f0fe' }]}
-                          onPress={() => handleUpvote(item.id)}
-                          onPressIn={() => setPressedButton(prev => ({ ...prev, [item.id + '-upvote']: true }))}
-                          onPressOut={() => setPressedButton(prev => ({ ...prev, [item.id + '-upvote']: false }))}
-                          accessibilityLabel={item.upvoted ? 'Remove upvote' : 'Upvote'}
-                        >
-                          <AntDesign
-                            name="arrowup"
-                            size={22}
-                            color={item.upvoted ? '#2E45A3' : themeColors.textSecondary}
-                          />
-                          <Text style={[styles.actionText, { color: item.upvoted ? '#2E45A3' : themeColors.textSecondary }]}> {formatCount(item.upvotes ?? item.likes ?? 0)} </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.actionButton, pressedButton[item.id + '-downvote'] && { backgroundColor: '#fdeaea' }]}
-                          onPress={() => handleDownvote(item.id)}
-                          onPressIn={() => setPressedButton(prev => ({ ...prev, [item.id + '-downvote']: true }))}
-                          onPressOut={() => setPressedButton(prev => ({ ...prev, [item.id + '-downvote']: false }))}
-                          accessibilityLabel={item.downvoted ? 'Remove downvote' : 'Downvote'}
-                        >
-                          <AntDesign
-                            name="arrowdown"
-                            size={22}
-                            color={item.downvoted ? '#E74C3C' : themeColors.textSecondary}
-                          />
-                        </TouchableOpacity>
-                      </>
-                    ) : (
-                      <TouchableOpacity
-                        style={[styles.actionButton, pressedButton[item.id + '-like'] && { backgroundColor: '#fdeaea' }]}
-                        onPress={() => handleLike(item.id)}
-                        onPressIn={() => setPressedButton(prev => ({ ...prev, [item.id + '-like']: true }))}
-                        onPressOut={() => setPressedButton(prev => ({ ...prev, [item.id + '-like']: false }))}
-                      >
-                        <AntDesign 
-                          name={item.liked ? 'heart' : 'hearto'} 
-                          size={22} 
-                          color={item.liked ? '#e74c3c' : themeColors.textSecondary} 
-                        />
-                        <Text style={[styles.actionText, { color: item.liked ? '#e74c3c' : themeColors.textSecondary }]}> {item.likes} </Text>
-                      </TouchableOpacity>
-                    )}
-                    {isNewsPost && (
-                      <TouchableOpacity
-                        style={[styles.actionButton, pressedButton[item.id + '-comment'] && { backgroundColor: '#e8f0fe' }]}
-                        onPress={() => handleComment(item.id)}
-                        onPressIn={() => setPressedButton(prev => ({ ...prev, [item.id + '-comment']: true }))}
-                        onPressOut={() => setPressedButton(prev => ({ ...prev, [item.id + '-comment']: false }))}
-                      >
-                        <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
-                        <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{item.comments}</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  <View style={styles.actionGroupRight}>
-                    <TouchableOpacity style={styles.actionButton} onPress={() => handleShare(item.id)}>
-                      <Feather name="share-2" size={20} color={themeColors.textSecondary} />
-                      <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{item.shares}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.actionButton, pressedButton[item.id + '-save'] && { backgroundColor: '#e8f0fe' }]}
-                      onPress={() => handleSave(item.id)}
-                      onPressIn={() => setPressedButton(prev => ({ ...prev, [item.id + '-save']: true }))}
-                      onPressOut={() => setPressedButton(prev => ({ ...prev, [item.id + '-save']: false }))}
-                    >
-                      {item.saved ? (
-                        <FontAwesome name="bookmark" size={20} color={themeColors.accent} />
-                      ) : (
-                        <Feather name="bookmark" size={20} color={themeColors.textSecondary} />
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            );
-          }}
-          contentContainerStyle={{ paddingBottom: 32 }}
-        />
-      )}
-      {/* Edit Profile Modal */}
-      {editModalVisible && (
-        <View style={styles.editModalBackdrop}>
-          <View style={[styles.editModal, { backgroundColor: themeColors.background }]}> 
-            <Text style={[styles.editModalTitle, { color: themeColors.text }]}>Edit Profile</Text>
-            <TouchableOpacity onPress={pickAvatar} style={styles.editAvatarButton} accessibilityLabel="Pick new avatar">
-              <Image source={avatarUri ? { uri: avatarUri } : (editAvatar && imageMap[editAvatar] ? imageMap[editAvatar] : require('../assets/images/Commenter1.jpg'))} style={styles.avatar} />
-              <Text style={{ color: themeColors.accent, marginTop: 4 }}>Change Avatar</Text>
-            </TouchableOpacity>
-            <Text style={[styles.editLabel, { color: themeColors.textSecondary }]}>Username</Text>
-            <TextInput
-              style={[styles.editInput, { color: themeColors.text, borderColor: themeColors.border }]}
-              value={editUsername}
-              onChangeText={setEditUsername}
-              maxLength={30}
-              accessibilityLabel="Edit username"
-            />
-            <Text style={[styles.editLabel, { color: themeColors.textSecondary }]}>Bio</Text>
-            <TextInput
-              style={[styles.editInput, { color: themeColors.text, borderColor: themeColors.border, height: 60 }]}
-              value={editBio}
-              onChangeText={setEditBio}
-              maxLength={120}
-              multiline
-              accessibilityLabel="Edit bio"
-            />
-            <View style={styles.editModalActions}>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)} style={styles.editCancelBtn} accessibilityLabel="Cancel edit">
-                <Text style={{ color: themeColors.textSecondary }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleSaveEdit} style={styles.editSaveBtn} accessibilityLabel="Save profile">
-                <Text style={{ color: themeColors.accent, fontWeight: 'bold' }}>Save</Text>
-              </TouchableOpacity>
+        ref={flatListRef}
+        data={data}
+        keyExtractor={item => item.id?.toString() || Math.random().toString()}
+        renderItem={({ item }) => (
+          <View style={{ backgroundColor: themeColors.card, marginHorizontal: 0, marginBottom: 12, borderRadius: 10, padding: 16 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 16, color: themeColors.text }}>{item.title}</Text>
+            {item.content && <Text style={{ color: themeColors.text, marginTop: 4 }}>{item.content}</Text>}
+            {item.image && <Image source={imageMap[item.image] ? imageMap[item.image] : require('../assets/images/Random.jpg')} style={{ width: '100%', height: 180, borderRadius: 8, marginTop: 8 }} />}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+              <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginRight: 12 }}>{getRelativeTime(item.timestamp)}</Text>
+              {item.likes !== undefined && (
+                <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginRight: 12 }}>Likes: {formatNumber(item.likes)}</Text>
+              )}
+              {item.comments !== undefined && (
+                <Text style={{ color: themeColors.textSecondary, fontSize: 12 }}>Comments: {formatNumber(item.comments)}</Text>
+              )}
             </View>
-          </View>
           </View>
         )}
-      {/* Image Modal */}
-      <ImageModal
-        visible={imageModalVisible}
-        imageSource={selectedImage}
-        onClose={() => setImageModalVisible(false)}
-        themeColors={themeColors}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={emptyComponent}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        style={{ flex: 1, backgroundColor: themeColors.background }}
       />
-      {/* Comment Modal */}
-      <CommentModal
-        visible={commentModalVisible}
-        onClose={() => setCommentModalVisible(false)}
-        post={selectedPost || {}}
-        comments={comments}
-        onAddComment={handleAddComment}
-        onLikeComment={handleLikeComment}
-        onReplyComment={() => {}}
-        themeColors={themeColors}
-      />
-    </View>
+    </>
   );
 };
 

@@ -11,6 +11,7 @@ import PopupMenu from '../../components/PopupMenu';
 import { usePosts } from '../../components/PostContext';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
+import { formatNumber } from '../../utils/numberUtils';
 import { getRelativeTime } from '../../utils/timeUtils';
 
 // Image mapping for profile pictures and post images
@@ -62,28 +63,33 @@ const imageMap = {
 };
 
 // Comment Component
-const Comment = ({ comment, onLike, onReply, themeColors }) => (
-  <View style={[styles.commentContainer, { borderBottomColor: themeColors.border }]}>
-    <View style={styles.commentHeader}>
-      <Image source={imageMap[comment.avatar] ? imageMap[comment.avatar] : require('../../assets/images/Commenter1.jpg')} style={styles.commentAvatar} />
-      <View style={styles.commentInfo}>
-        <Text style={[styles.commentUsername, { color: themeColors.text }]}>{comment.username}</Text>
-        <Text style={[styles.commentTime, { color: themeColors.textSecondary }]}>{getRelativeTime(comment.timestamp)}</Text>
+const Comment = ({ comment, onLike, onReply, themeColors }) => {
+  const router = useRouter();
+  return (
+    <View style={[styles.commentContainer, { borderBottomColor: themeColors.border }]}>
+      <View style={styles.commentHeader}>
+        <TouchableOpacity onPress={() => router.push({ pathname: '/profile', params: { userId: comment.id, username: comment.username, avatar: comment.avatar } })}>
+          <Image source={imageMap[comment.avatar] ? imageMap[comment.avatar] : require('../../assets/images/Commenter1.jpg')} style={styles.commentAvatar} />
+        </TouchableOpacity>
+        <View style={styles.commentInfo}>
+          <Text style={[styles.commentUsername, { color: themeColors.text }]}>{comment.username}</Text>
+          <Text style={[styles.commentTime, { color: themeColors.textSecondary }]}>{getRelativeTime(comment.timestamp)}</Text>
+        </View>
+      </View>
+      <Text style={[styles.commentText, { color: themeColors.text }]}>{comment.text}</Text>
+      <View style={styles.commentActions}>
+        <TouchableOpacity style={styles.commentAction} onPress={() => onLike(comment.id)}>
+          <AntDesign name={comment.liked ? 'heart' : 'hearto'} size={16} color={comment.liked ? '#e74c3c' : themeColors.icon} />
+          <Text style={[styles.commentActionText, { color: comment.liked ? '#e74c3c' : themeColors.textSecondary }]}>{comment.likes}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.commentAction} onPress={() => onReply(comment.id)}>
+          <Feather name="message-circle" size={16} color={themeColors.icon} />
+          <Text style={[styles.commentActionText, { color: themeColors.textSecondary }]}>Reply</Text>
+        </TouchableOpacity>
       </View>
     </View>
-    <Text style={[styles.commentText, { color: themeColors.text }]}>{comment.text}</Text>
-    <View style={styles.commentActions}>
-      <TouchableOpacity style={styles.commentAction} onPress={() => onLike(comment.id)}>
-        <AntDesign name={comment.liked ? 'heart' : 'hearto'} size={16} color={comment.liked ? '#e74c3c' : themeColors.icon} />
-        <Text style={[styles.commentActionText, { color: comment.liked ? '#e74c3c' : themeColors.textSecondary }]}>{comment.likes}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.commentAction} onPress={() => onReply(comment.id)}>
-        <Feather name="message-circle" size={16} color={themeColors.icon} />
-        <Text style={[styles.commentActionText, { color: themeColors.textSecondary }]}>Reply</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-);
+  );
+};
 
 // Comment Modal Component
 const CommentModal = ({ visible, onClose, post, comments, onAddComment, onLikeComment, onReplyComment, themeColors }) => {
@@ -256,18 +262,18 @@ const Post = ({ post, onLike, onDislike, onComment, onShare, onImagePress, onSav
               color={post.liked ? '#e74c3c' : themeColors.textSecondary} 
             />
             <Text style={[styles.actionText, { color: post.liked ? '#e74c3c' : themeColors.textSecondary }]}> 
-              {formatCount(post.likes)}
+              {formatNumber(post.likes)}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => onComment(post.id)}>
             <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
-            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatCount(post.comments)}</Text>
+            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatNumber(post.comments)}</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.actionGroup}>
           <TouchableOpacity style={styles.actionButton} onPress={() => onShare(post.id)}>
             <Feather name="share-2" size={20} color={themeColors.textSecondary} />
-            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatCount(post.shares)}</Text>
+            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatNumber(post.shares)}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.saveButton}
@@ -307,17 +313,6 @@ const Header = ({ menuOpen, setMenuOpen, onProfilePress, onSearchPress }) => {
       </View>
     </View>
   );
-};
-
-// Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)
-const formatCount = (num) => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-  }
-  return num;
 };
 
 const index = () => {
@@ -548,12 +543,9 @@ const index = () => {
     router.push({
       pathname: '/profile',
       params: {
-        user: JSON.stringify({
-          user: post.user,
-          avatar: post.avatar,
-          id: post.id,
-        }),
-        from: 'root',
+        userId: post.id,
+        username: post.user,
+        avatar: post.avatar,
       },
     });
   };

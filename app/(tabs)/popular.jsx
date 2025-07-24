@@ -12,6 +12,7 @@ import PopupMenu from '../../components/PopupMenu';
 import { usePosts } from '../../components/PostContext';
 import ProfileModal from '../../components/ProfileModal';
 import { useTheme } from '../../components/ThemeContext';
+import { formatNumber } from '../../utils/numberUtils';
 import { getRelativeTime } from '../../utils/timeUtils';
 import popularData from './popular_data.json';
 
@@ -73,28 +74,6 @@ const imageMap = {
   'Dis.png': require('../../assets/images/Dis.png'),
 };
 
-// Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)
-const formatLikes = (num) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-    }
-    return num;
-  };
-
-// Helper function to format large numbers (e.g., 1000 -> 1K, 1000000 -> 1M)
-const formatCount = (num) => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-  }
-  return num;
-};
-
 // Main Post Component - Displays individual posts in the popular feed
 const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAward, onShare, themeColors, onMore, onBookmarkLongPress, isBookmarked, DEFAULT_COLLECTION, onProfilePress }) => {
   // Debug logs for avatar and image lookups
@@ -147,7 +126,7 @@ const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAwar
               color={post.liked ? '#2E45A3' : themeColors.textSecondary}
             />
             <Text style={[styles.actionText, { color: post.liked ? '#2E45A3' : themeColors.textSecondary }]}>
-              {(post.likes ?? post.upvotes ?? 0)}
+              {formatNumber(post.likes ?? post.upvotes ?? 0)}
             </Text>
           </TouchableOpacity>
           {/* Dislike Button */}
@@ -161,14 +140,14 @@ const Post = ({ post, onLike, onDislike, onComment, onImagePress, onSave, onAwar
           {/* Comment Button */}
           <TouchableOpacity style={styles.actionButton} onPress={() => onComment(post.id)}>
             <Feather name="message-circle" size={20} color={themeColors.textSecondary} />
-            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{post.comments ?? 0}</Text>
+            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatNumber(post.comments ?? 0)}</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.actionGroup}>
           {/* Share Button */}
           <TouchableOpacity style={styles.actionButton} onPress={() => onShare(post.id)}>
             <Feather name="share-2" size={20} color={themeColors.textSecondary} />
-            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatCount(post.shares)}</Text>
+            <Text style={[styles.actionText, { color: themeColors.textSecondary }]}>{formatNumber(post.shares)}</Text>
           </TouchableOpacity>
           {/* Save/Bookmark Button */}
           <TouchableOpacity
@@ -508,13 +487,9 @@ const PopularScreen = () => {
       router.push({
         pathname: '/profile',
         params: {
-          user: JSON.stringify({
-            user: post.user,
+          userId: post.id,
+          username: post.user,
           avatar: post.avatar,
-            id: post.id,
-          }),
-          from: 'popular',
-          newsPosts: JSON.stringify(filteredPosts.filter(p => (p.user || '').trim().toLowerCase() === (post.user || '').trim().toLowerCase())),
         },
       });
     };
