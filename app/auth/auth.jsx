@@ -99,6 +99,7 @@ export default function AuthScreen() {
       }, 800));
       // If successful:
       setModalVisible(false);
+      router.replace('(tabs)'); // Navigate to main home feed tab
     } catch (err) {
       // Example error handling
       let toastMsg = 'Sign in failed. Please try again.';
@@ -328,7 +329,10 @@ export default function AuthScreen() {
                     <Text style={styles.forgotText}>Forgot password?</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => { setLoginLinkModalVisible(true); setModalVisible(false); }}>
-                    <Text style={styles.loginLinkText}>Email me a login link instead</Text>
+                    <View style={styles.customUnderlineWrap}>
+                      <Text style={styles.loginLinkText}>Email me a login link instead</Text>
+                      <View style={styles.customUnderline} />
+                    </View>
                   </TouchableOpacity>
                 </View>
                 {/* Create Account Link */}
@@ -670,6 +674,7 @@ export default function AuthScreen() {
                 setTimeout(() => {
                   setCreateLoading(false);
                   setCreateSuccess('Account created! Check your email for a confirmation link.');
+                  router.replace('(tabs)'); // Navigate to main home feed tab
                 }, 1200);
               }}
               disabled={!createEmail.trim() || !createChecked || createLoading}
@@ -990,7 +995,7 @@ export default function AuthScreen() {
                   setSelectedGender(option);
                   setTimeout(() => {
                     setGenderModalVisible(false);
-                    router.replace('/');
+                    router.replace('(tabs)'); // Navigate to main home feed tab
                   }, 400);
                 }}
               >
@@ -1390,8 +1395,7 @@ const styles = StyleSheet.create({
   loginLinkText: {
     color: '#222',
     fontSize: 14,
-    textDecorationLine: 'underline',
-    fontWeight: '500',
+    fontWeight: '700',
   },
   createAccountBtn: {
     marginTop: 8,
@@ -1882,5 +1886,18 @@ const styles = StyleSheet.create({
   },
   genderOptionTextSelected: {
     color: ACCENT,
+  },
+  customUnderlineWrap: {
+    alignSelf: 'flex-start',
+    position: 'relative',
+  },
+  customUnderline: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: -2,
+    height: 2,
+    backgroundColor: '#000',
+    borderRadius: 1,
   },
 }); 

@@ -1,7 +1,7 @@
 import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Stack, usePathname, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useBookmarks } from '../../components/BookmarkContext';
 import CollectionModal from '../../components/CollectionModal';
@@ -374,13 +374,7 @@ const index = () => {
 
   // Force re-render every minute to update timestamps
   const [, setTimeUpdate] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTimeUpdate(Date.now());
-    }, 60000); // Update every minute
-
-    return () => clearInterval(interval);
-  }, []);
+  // Removed useEffect with window.addEventListener and window.removeEventListener as it is not supported in React Native.
 
   // Filter and sort posts for Home feed
   const filteredPosts = posts

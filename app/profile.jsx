@@ -147,7 +147,6 @@ const ProfileView = () => {
     setProfilePosts(posts => posts.map(p => {
       if (p.id === id) {
         const updated = { ...p, liked: !p.liked, likes: p.liked ? (p.likes || 0) - 1 : (p.likes || 0) + 1 };
-        window.dispatchEvent(new CustomEvent('postUpdate', { detail: updated }));
         return updated;
       }
       return p;
@@ -176,7 +175,6 @@ const ProfileView = () => {
         } else {
           updated = { ...p, upvoted: true, downvoted: false, upvotes: (p.upvotes ?? 0) + 1 };
         }
-        window.dispatchEvent(new CustomEvent('postUpdate', { detail: updated }));
         return updated;
       }
       return p;
@@ -205,7 +203,6 @@ const ProfileView = () => {
         } else {
           updated = { ...p, downvoted: true };
         }
-        window.dispatchEvent(new CustomEvent('postUpdate', { detail: updated }));
         return updated;
       }
       return p;
@@ -216,7 +213,6 @@ const ProfileView = () => {
     setProfilePosts(posts => posts.map(p => {
       if (p.id === id) {
         const updated = { ...p, saved: !p.saved };
-        window.dispatchEvent(new CustomEvent('postUpdate', { detail: updated }));
         return updated;
       }
       return p;
@@ -348,7 +344,6 @@ const ProfileView = () => {
     setProfilePosts(posts => posts.map(post => {
       if (post.id === selectedPost.id) {
         const updated = { ...post, comments: (post.comments ?? 0) + 1, commentsList: [newComment, ...(post.commentsList || [])] };
-        window.dispatchEvent(new CustomEvent('postUpdate', { detail: updated }));
         return updated;
       }
       return post;

@@ -202,7 +202,7 @@ const ChatDetail = () => {
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: themeColors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={80}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 16 : 0}
     >
       <Header />
       <FlatList

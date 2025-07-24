@@ -1,7 +1,7 @@
 import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Stack, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Animated, FlatList, Image, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useBookmarks } from '../../components/BookmarkContext';
 import CommentModal from '../../components/CommentModal';
@@ -277,14 +277,7 @@ const Latest = () => {
     }
   ]);
 
-  useEffect(() => {
-    const handler = (e) => {
-      const updated = e.detail;
-      setPosts(posts => posts.map(p => p.id === updated.id ? { ...p, ...updated } : p));
-    };
-    window.addEventListener('postUpdate', handler);
-    return () => window.removeEventListener('postUpdate', handler);
-  }, []);
+  // Removed useEffect with window.addEventListener and window.removeEventListener as it is not supported in React Native.
 
   const handleUpvote = (id) => {
     setPosts(posts => posts.map(item => {

@@ -127,7 +127,7 @@ export default function OnboardingScreen() {
               styles.getStartedModern,
               pressed && { transform: [{ scale: 0.97 }] }
             ]}
-            onPress={() => router.replace('/(tabs)/auth')}
+            onPress={() => router.replace('/auth/auth')}
             onPressIn={() => setIsPressed(true)}
             onPressOut={() => setIsPressed(false)}
           >
@@ -305,4 +305,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-});
+}); 

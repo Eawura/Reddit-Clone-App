@@ -512,14 +512,7 @@ const News = () => {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const handler = (e) => {
-      const updated = e.detail;
-      setNewsList(newsList => newsList.map(p => p.id === updated.id ? { ...p, ...updated } : p));
-    };
-    window.addEventListener('postUpdate', handler);
-    return () => window.removeEventListener('postUpdate', handler);
-  }, []);
+  // Removed useEffect with window.addEventListener and window.removeEventListener as it is not supported in React Native.
 
   // News categories for filtering
   const categories = ['All', 'Technology', 'Sports', 'Science', 'Entertainment', 'Business', 'Politics', 'Health'];
