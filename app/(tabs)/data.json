@@ -1,0 +1,175 @@
+{
+  "posts": [
+    {
+      "id": "1",
+      "user": "n/harryPotter",
+      "timestamp": "2024-06-07T12:55:00.000Z",
+      "title": "Daniel Radcliffe's acting",
+      "image": "daniel-radcliffes-acting-v0-zhahfgw6fj5f1.webp",
+      "likes": 77,
+      "comments": 4,
+      "shares": 11,
+      "avatar": "harry logo.webp"
+    },
+    {
+      "id": "2",
+      "user": "n/NBA",
+      "timestamp": "2024-06-07T10:00:00.000Z",
+      "title": "Lebron James x Stephen Curry",
+      "image": "curry.jpg",
+      "likes": 999,
+      "comments": 4,
+      "shares": 0,
+      "avatar": "Logo-NBA.png"
+    },
+    {
+      "id": "3",
+      "user": "n/Fifa",
+      "timestamp": "2024-06-06T13:00:00.000Z",
+      "title": "Him!",
+      "image": "Messi.jpg",
+      "likes": 755,
+      "comments": 4,
+      "shares": 55,
+      "avatar": "fifa logo.jpg"
+    },
+    {
+      "id": "4",
+      "user": "n/food",
+      "timestamp": "2025-06-07T12:30:00.000Z",
+      "title": "Check out this delicious ramen bowl 🍜",
+      "image": "Ramen.jpeg",
+      "likes": 23,
+      "comments": 4,
+      "shares": 2,
+      "avatar": "https://randomuser.me/api/portraits/men/4.jpg"
+    },
+    {
+      "id": "5",
+      "user": "n/Sports",
+      "timestamp": "2025-07-04T13:00:00.000Z",
+      "title": "Golden Ball winner. 🏆",
+      "image": "Cole Palmer.jpg",
+      "likes": 42,
+      "comments": 4,
+      "shares": 9,
+      "avatar": "CWC.jpg"
+    },
+    {
+      "id": "6",
+      "user": "n/Tech",
+      "timestamp": "2024-06-13T10:00:00.000Z",
+      "title": "AI breakthrough: New model sets record!",
+      "image": "Ai.png",
+      "likes": 120,
+      "comments": 7,
+      "shares": 15,
+      "avatar": "Tech.png"
+    },
+    {
+      "id": "7",
+      "user": "n/Travel",
+      "timestamp": "2024-06-13T09:30:00.000Z",
+      "title": "Rome is a beautiful city",
+      "image": "Travel.png",
+      "likes": 88,
+      "comments": 3,
+      "shares": 5,
+      "avatar": "TravelA.png"
+    },
+    {
+      "id": "8",
+      "user": "n/Science",
+      "timestamp": "2024-06-13T08:00:00.000Z",
+      "title": "Scientists discover new species in the Amazon",
+      "image": "Monkey.png",
+      "likes": 64,
+      "comments": 2,
+      "shares": 8,
+      "avatar": "Science1.png"
+    },
+    {
+      "id": "9",
+      "user": "n/AutoTech",
+      "timestamp": "2024-06-13T15:00:00.000Z",
+      "title": "BMW M8: The Ultimate Driving Machine",
+      "image": "BM.png",
+      "likes": 150,
+      "comments": 6,
+      "shares": 12,
+      "avatar": "M8 bmw.jpg"
+    },
+    {
+      "id": "10",
+      "user": "n/Animals",
+      "timestamp": "2024-06-13T14:30:00.000Z",
+      "title": "Penguins spotted in unexpected places!",
+      "image": "p.png",
+      "likes": 73,
+      "comments": 5,
+      "shares": 7,
+      "avatar": "Animal.png"
+    },
+    {
+      "id": "11",
+      "user": "n/Random",
+      "timestamp": "2024-06-13T14:00:00.000Z",
+      "title": "Random discoveries that made my day",
+      "image": "Dis.png",
+      "likes": 41,
+      "comments": 2,
+      "shares": 3,
+      "avatar": "Random.jpg"
+    },
+    {
+      "id": "12",
+      "user": "n/Science",
+      "timestamp": "2024-06-14T12:00:00.000Z",
+      "title": "Quantum Computing: The Next Revolution",
+      "image": "Science1.png",
+      "likes": 0,
+      "comments": 0,
+      "shares": 0,
+      "avatar": "AnimalA.png"
+    },
+    {
+      "id": "13",
+      "user": "n/Travel",
+      "timestamp": "2024-06-14T12:05:00.000Z",
+      "title": "Exploring the Wonders of the World",
+      "image": "Travel.png",
+      "likes": 0,
+      "comments": 0,
+      "shares": 0,
+      "avatar": "TravelA.png"
+    },
+    {
+      "id": "14",
+      "user": "n/Tech",
+      "timestamp": "2024-06-14T12:10:00.000Z",
+      "title": "AI in Everyday Life: What’s Next?",
+      "image": "Ai.png",
+      "likes": 0,
+      "comments": 0,
+      "shares": 0,
+      "avatar": "Tech.png"
+    }
+  ],
+  "trending": [
+    {
+      "id": "t1",
+      "title": "Cedi Appreciation",
+      "image": "w1.jpg"
+    },
+    {
+      "id": "t2",
+      "title": "Russia-Ukraine war: US allies",
+      "image": "T1.jpg"
+    },
+    {
+      "id": "t3",
+      "title": "Charles Adu-Benni detains",
+      "image": "yu.jpg"
+    }
+  ]
+} 

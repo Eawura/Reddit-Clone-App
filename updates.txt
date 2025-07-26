@@ -1,0 +1,126 @@
+# NeoPing - Backend to Frontend Mapping
+# Last Updated: 2025-07-23
+
+## ✅ Backend Implemented (With UI)
+
+### 1. User Authentication
+- Frontend Files: 
+  - auth.jsx - Login/Register forms
+  - _layout.jsx - Protected routes
+  - AuthContext.jsx - Authentication state
+
+### 2. User Profiles
+- Frontend Files:
+  - profile.jsx - User profile page
+  - ProfileModal.jsx - Profile view/edit modal
+  - ProfileContext.jsx - User data management
+
+### 3. Posts
+- Frontend Files:
+  - index.jsx - Main feed
+  - create.jsx - Post creation
+  - PostContext.jsx - Post state management
+  - MoreMenu.jsx - Post options
+  - ImageModal.jsx - Post media viewer
+
+### 4. Comments
+- Frontend Files:
+  - index.jsx - Comment display
+  - CommentModal.jsx - Comment input and list
+  - PopupMenu.jsx - Comment options
+
+## 🚧 Partially Implemented
+
+### 1. Messaging (Ping)
+- Frontend Files:
+  - chat.jsx - Chat interface (basic)
+  - inbox.jsx - Message list (basic)
+- Missing Backend:
+  - Database models
+  - Real-time messaging
+  - Message status
+
+## ❌ Backend Not Implemented (Ordered by Importance)
+
+### 1. User Authentication & Security
+- Frontend Files:
+  - auth.jsx - Needs password reset forms
+  - profile.jsx - Needs security settings
+- Missing Backend:
+  - Email verification
+  - Password reset
+  - 2FA
+
+### 2. Notifications System
+- Frontend Files:
+  - No dedicated file (could be notifications.jsx)
+  - index.jsx - Notification badges
+- Missing Backend:
+  - Notification models
+  - Real-time delivery
+  - Preferences
+
+### 3. Content Moderation
+- Frontend Files:
+  - MoreMenu.jsx - Report post/comment
+  - PopupMenu.jsx - Report options
+- Missing Backend:
+  - Report system
+  - Moderation tools
+  - Content filtering
+
+### 4. Search Functionality
+- Frontend Files:
+  - communities.jsx - Search bar
+  - index.jsx - Search results
+- Missing Backend:
+  - Search indexing
+  - Search API endpoints
+  - Search history
+
+### 5. Admin Dashboard
+- Frontend Files:
+  - No dedicated file (could be admin.jsx)
+- Missing Backend:
+  - Admin routes
+  - User management
+  - System metrics
+
+### 6. Media Handling
+- Frontend Files:
+  - create.jsx - Media upload
+  - ImageModal.jsx - Media viewer
+- Missing Backend:
+  - File processing
+  - CDN integration
+  - Media optimization
+
+### 7. Analytics
+- Frontend Files:
+  - No dedicated UI yet
+- Missing Backend:
+  - Data collection
+  - Analytics API
+  - Dashboard endpoints
+
+## 🔄 Frontend Components Needing Backend
+
+1. chat.jsx - Needs:
+   - Real-time messaging backend
+   - Message storage
+   - Online status
+
+2. inbox.jsx - Needs:
+   - Message list API
+   - Conversation management
+   - Unread counts
+
+3. news.jsx - Could use:
+   - News feed API
+   - Content aggregation
+   - Personalization
+
+4. watch.jsx - Could use:
+   - Video processing
+   - Content delivery
+   - View tracking
