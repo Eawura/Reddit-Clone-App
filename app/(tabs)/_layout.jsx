@@ -1,17 +1,17 @@
-import { AntDesign } from "@expo/vector-icons";
-import Fontisto from "@expo/vector-icons/Fontisto";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Tabs } from "expo-router";
-import { StyleSheet } from "react-native";
-import { useTheme } from "../../components/ThemeContext";
+import { AntDesign } from '@expo/vector-icons';
+import Fontisto from '@expo/vector-icons/Fontisto';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Tabs } from 'expo-router';
+import { StyleSheet } from 'react-native';
+import { useTheme } from '../../components/ThemeContext';
 
 export default function TabsLayout() {
   const { themeColors } = useTheme();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: themeColors.accent || "#2E45A3",
+        tabBarActiveTintColor: themeColors.accent || '#2E45A3',
         tabBarInactiveTintColor: themeColors.textSecondary,
         tabBarShowLabel: true,
         tabBarLabelStyle: {
@@ -30,7 +30,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: 'Home',
           headerShown: false,
           tabBarIcon: ({ color }) => (
             <Fontisto name="home" size={24} color={color} />
@@ -40,28 +40,17 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="communities"
         options={{
-          title: "Communities",
+          title: 'Communities',
           headerShown: false,
           tabBarIcon: ({ color }) => (
             <Ionicons name="people-circle-outline" size={24} color={color} />
           ),
         }}
       />
-
-      <Tabs.Screen
-        name="api-test"
-        options={{
-          title: "API Test",
-          headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="code-slash" size={24} color={color} />
-          ),
-        }}
-      />
       <Tabs.Screen
         name="create"
         options={{
-          title: "Create",
+          title: 'Create',
           headerShown: false,
           tabBarIcon: ({ color }) => (
             <AntDesign name="plus" size={24} color={color} />
@@ -71,28 +60,20 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "Chat",
+          title: 'Chat',
           headerShown: false,
           tabBarIcon: ({ color }) => (
-            <Ionicons
-              name="chatbubble-ellipses-outline"
-              size={24}
-              color={color}
-            />
+            <Ionicons name="chatbubble-ellipses-outline" size={24} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="inbox"
         options={{
-          title: "Inbox",
+          title: 'Inbox',
           headerShown: false,
           tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons
-              name="bell-outline"
-              size={24}
-              color={color}
-            />
+            <MaterialCommunityIcons name="bell-outline" size={24} color={color} />
           ),
         }}
       />
@@ -120,27 +101,13 @@ export default function TabsLayout() {
           href: null,
         }}
       />
-      <Tabs.Screen
-        name="onboarding"
-        options={{
-          headerShown: false,
-          tabBarStyle: { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="auth"
-        options={{
-          headerShown: false,
-          tabBarStyle: { display: "none" },
-        }}
-      />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
   asareStyle: {
-    color: "#000",
+    color: '#000',
     marginTop: 400,
     marginLeft: 150,
   },

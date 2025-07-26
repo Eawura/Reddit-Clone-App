@@ -33,7 +33,7 @@ export default function SplashScreen() {
     }, NAME_APPEAR_DELAY);
     // Navigate after TOTAL_SPLASH_TIME
     const navTimeout = setTimeout(() => {
-      router.replace('/(tabs)/onboarding');
+      router.replace('/onboarding/onboarding');
     }, TOTAL_SPLASH_TIME);
     return () => {
       clearTimeout(startTimeout);
