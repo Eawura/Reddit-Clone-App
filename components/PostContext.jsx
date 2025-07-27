@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
-import data from '../app/(tabs)/data.json';
+import React, { createContext, useContext, useState } from "react";
+import data from "../app/(tabs)/data.json";
 
 const PostContext = createContext();
 
@@ -24,7 +24,7 @@ export function PostProvider({ children }) {
 
   // Add a new post
   const addPost = (post) => {
-    setPosts(prev => [
+    setPosts((prev) => [
       {
         ...post,
         id: Date.now().toString(),
@@ -49,4 +49,4 @@ export function PostProvider({ children }) {
 
 export function usePosts() {
   return useContext(PostContext);
-} 
+}

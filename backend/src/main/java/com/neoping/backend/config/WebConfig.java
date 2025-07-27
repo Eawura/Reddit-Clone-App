@@ -16,11 +16,16 @@ public class WebConfig {
                         .allowedOrigins(
                                 "http://localhost:8081",
                                 "http://localhost:8082",
-                                "http://192.168.100.6:8081", // Your IP
-                                "http://192.168.100.6:19000", // Expo dev server
-                                "http://192.168.100.6:19006", // Alternative Expo port
-                                "exp://192.168.100.6:8081", // Expo protocol
-                                "exp://192.168.100.6:19000" // Expo protocol alternative
+                                "http://172.20.10.2:8081",
+                                "http://172.20.10.2:19000",
+                                "http://172.20.10.2:19006",
+                                "exp://172.20.10.2:8081",
+                                "exp://172.20.10.2:19000",
+                                "http://192.168.200.160:8081", // <-- add this for web on LAN
+                                "http://192.168.200.160:8082", // <-- add this for direct API calls
+                                "exp://192.168.200.160:8081", // <-- add this for Expo Go
+                                "http://192.168.200.160:19000", // <-- add this for Expo dev tools
+                                "http://192.168.200.160:19006" // <-- add this for Expo dev tools
                 )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")

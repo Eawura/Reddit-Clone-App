@@ -1,17 +1,18 @@
-import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
-import webStorage from './webStorage';
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
+import webStorage from "./webStorage";
 
-const isWeb = Platform.OS === 'web';
-const DEBUG = true; // Enable debug logging
+const ONBOARDING_COMPLETE = "@onboarding_complete";
+const AUTHENTICATED = "@authenticated";
 
-// Use webStorage for web, SecureStore for native
-const storage = isWeb ? webStorage : {
+const isWeb = Platform.OS === "web";
+const DEBUG = true;
+
+const nativeStorage = {
   async getItem(key) {
     try {
-      if (DEBUG) console.log(`[Storage] Getting item from SecureStore: ${key}`);
+      if (DEBUG) console.log(`[Storage] Getting item: ${key}`);
       const value = await SecureStore.getItemAsync(key);
-      if (DEBUG) console.log(`[Storage] Retrieved ${key}:`, value ? 'Value exists' : 'No value found');
       return value;
     } catch (error) {
       console.error(`[Storage] Error getting item ${key}:`, error);
@@ -29,7 +30,6 @@ const storage = isWeb ? webStorage : {
       }
     } catch (error) {
       console.error(`[Storage] Error setting item ${key}:`, error);
-      throw error;
     }
   },
 
@@ -39,28 +39,38 @@ const storage = isWeb ? webStorage : {
       await SecureStore.deleteItemAsync(key);
     } catch (error) {
       console.error(`[Storage] Error deleting item ${key}:`, error);
-      throw error;
     }
   },
-  
-  // For native, we can't list all keys
-  async listKeys() {
-    if (DEBUG) console.log('[Storage] listKeys() is not supported on native platforms');
-    return [];
-  },
-  
-  // Clear all auth tokens (for compatibility with webStorage)
+
   async clearAuthTokens() {
-    await this.deleteItem('auth_token');
-    await this.deleteItem('refresh_token');
-    if (DEBUG) console.log('[Storage] Cleared all auth tokens');
+    await this.deleteItem("auth_token");
+    await this.deleteItem("refresh_token");
   },
-  
-  // Check if we have a valid token (for compatibility with webStorage)
+
   async hasValidToken() {
-    const token = await this.getItem('auth_token');
+    const token = await this.getItem("auth_token");
     return !!token;
-  }
+  },
+
+  async setOnboardingComplete(value = true) {
+    await this.setItem(ONBOARDING_COMPLETE, JSON.stringify(value));
+  },
+
+  async getOnboardingStatus() {
+    const value = await this.getItem(ONBOARDING_COMPLETE);
+    return value === "true" || value === true;
+  },
+
+  async setAuthenticated(value = true) {
+    await this.setItem(AUTHENTICATED, JSON.stringify(value));
+  },
+
+  async getAuthStatus() {
+    const value = await this.getItem(AUTHENTICATED);
+    return value === "true" || value === true;
+  },
 };
+
+const storage = isWeb ? webStorage : nativeStorage;
 
 export default storage;

@@ -2,15 +2,28 @@ import axios from "axios";
 import { Platform } from "react-native";
 import storage from "./storage";
 
-// Only set your local IP here
+// Get the correct API URL based on environment
 const getApiUrl = () => {
-  const LOCAL_IP = "192.168.200.160"; // Update if your IP changes
-  const PORT = "8082";
-  if (Platform.OS === "web") {
-    return `http://localhost:${PORT}/api`;
-  } else {
-    return `http://${LOCAL_IP}:${PORT}/api`;
+  // For production, you would use your production API URL
+  // For development:
+  if (__DEV__) {
+    const webUrl = "http://localhost:8082/api";
+    const mobileUrl = "http://172.20.10.2:8082/api";
+
+    console.log(`[API] Running in ${Platform.OS} environment`);
+
+    // When running on web in development
+    if (Platform.OS === "web") {
+      console.log(`[API] Using web URL: ${webUrl}`);
+      return webUrl;
+    }
+    // When running on mobile device in development
+    console.log(`[API] Using mobile URL: ${mobileUrl}`);
+    return mobileUrl;
   }
+
+  // For production (update with your production URL)
+  return "https://your-production-api.com/api";
 };
 
 const API_URL = getApiUrl();
@@ -24,6 +37,9 @@ const api = axios.create({
   timeout: 15000,
   withCredentials: true,
 });
+
+api.getBaseURL = () => api.defaults.baseURL;
+// Export the API URL for use in other parts of the app
 
 // Attach token to requests if present
 api.interceptors.request.use(
@@ -40,20 +56,59 @@ api.interceptors.request.use(
 // AUTH API ONLY
 export const authAPI = {
   async login(usernameOrEmail, password) {
+    console.log("[API] Attempting login...");
+    console.log(`[API] Base URL: ${api.defaults.baseURL}`);
+
     try {
       const response = await api.post("/auth/login", {
         username: usernameOrEmail,
         password,
       });
+
+      console.log("[API] Login response:", response.status, response.data);
+
       if (response.data && response.data.token) {
+        console.log("[API] Login successful");
         return { success: true, data: response.data };
       } else {
-        return { success: false, error: "Invalid response format from server" };
+        console.log("[API] Invalid response format:", response.data);
+        return {
+          success: false,
+          error:
+            response.data?.message || "Invalid response format from server",
+        };
       }
     } catch (error) {
+      console.error("[API] Login error:", {
+        message: error.message,
+        response: error.response?.data,
+        code: error.code,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data,
+        },
+      });
+
+      let errorMessage = "Login failed";
+      if (error.response) {
+        // Server responded with a status code outside 2xx
+        errorMessage =
+          error.response.data?.message ||
+          `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        // Request was made but no response received
+        errorMessage = "No response from server. Please check your connection.";
+      } else if (error.message) {
+        // Something happened in setting up the request
+        errorMessage = error.message;
+      }
+
       return {
         success: false,
-        error: error.response?.data?.message || error.message || "Login failed",
+        error: errorMessage,
+        code: error.code,
+        status: error.response?.status,
       };
     }
   },

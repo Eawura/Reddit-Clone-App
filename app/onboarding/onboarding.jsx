@@ -1,38 +1,55 @@
-import { AntDesign } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React, { useRef, useState } from 'react';
-import { Animated, Dimensions, Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+export const options = {
+  tabBarButton: () => null,
+};
 
-const { width, height } = Dimensions.get('window');
+import { AntDesign } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React, { useRef, useState } from "react";
+import storage from "../../utils/storage";
+import {
+  Animated,
+  Dimensions,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const ACCENT = '#2E45A3';
-const GRADIENT = ['#e8edfa', '#f5f7fb', '#e8edfa'];
+const { width, height } = Dimensions.get("window");
+
+const ACCENT = "#2E45A3";
+const GRADIENT = ["#e8edfa", "#f5f7fb", "#e8edfa"];
 
 const onboardingData = [
   {
-    id: '1',
-    title: 'Create your Profile',
-    description: 'Set up your profile to share your interests and connect with others.',
-    image: require('../../assets/images/onboarding-1.png'),
+    id: "1",
+    title: "Create your Profile",
+    description:
+      "Set up your profile to share your interests and connect with others.",
+    image: require("../../assets/images/onboarding-1.png"),
   },
   {
-    id: '2',
-    title: 'Join Communities',
-    description: 'Explore and join communities that match your interests.',
-    image: require('../../assets/images/onboarding-2.png'),
+    id: "2",
+    title: "Join Communities",
+    description: "Explore and join communities that match your interests.",
+    image: require("../../assets/images/onboarding-2.png"),
   },
   {
-    id: '3',
-    title: 'Engage with Content',
-    description: 'Participate in discussions, comment on posts, and share your thoughts.',
-    image: require('../../assets/images/onboarding-3.png'),
+    id: "3",
+    title: "Engage with Content",
+    description:
+      "Participate in discussions, comment on posts, and share your thoughts.",
+    image: require("../../assets/images/onboarding-3.png"),
   },
   {
-    id: '4',
-    title: 'Create your own post',
-    description: 'Share your creativity, opinions, or experience within the community.',
-    image: require('../../assets/images/onboarding-4.png'),
+    id: "4",
+    title: "Create your own post",
+    description:
+      "Share your creativity, opinions, or experience within the community.",
+    image: require("../../assets/images/onboarding-4.png"),
   },
 ];
 
@@ -47,6 +64,12 @@ export default function OnboardingScreen() {
     if (flatListRef.current) {
       flatListRef.current.scrollToIndex({ index: onboardingData.length - 1 });
     }
+  };
+
+  const handleDone = async () => {
+    // Set onboarding as complete and navigate to auth
+    await storage.setOnboardingComplete(true);
+    router.replace("/auth/auth");
   };
 
   const handleNext = () => {
@@ -69,7 +92,10 @@ export default function OnboardingScreen() {
   return (
     <LinearGradient colors={GRADIENT} style={styles.gradient}>
       <View style={styles.logoWrap}>
-        <Image source={require('../../assets/images/Penguin.jpg')} style={styles.logoimg}/>
+        <Image
+          source={require("../../assets/images/Penguin.jpg")}
+          style={styles.logoimg}
+        />
       </View>
       <Animated.FlatList
         ref={flatListRef}
@@ -96,17 +122,20 @@ export default function OnboardingScreen() {
           const dotWidth = scrollX.interpolate({
             inputRange,
             outputRange: [10, 24, 10],
-            extrapolate: 'clamp',
+            extrapolate: "clamp",
           });
           const dotColor = scrollX.interpolate({
             inputRange,
-            outputRange: ['#ccc', ACCENT, '#ccc'],
-            extrapolate: 'clamp',
+            outputRange: ["#ccc", ACCENT, "#ccc"],
+            extrapolate: "clamp",
           });
           return (
             <Animated.View
               key={i}
-              style={[styles.dot, { width: dotWidth, backgroundColor: dotColor }]}
+              style={[
+                styles.dot,
+                { width: dotWidth, backgroundColor: dotColor },
+              ]}
             />
           );
         })}
@@ -118,27 +147,37 @@ export default function OnboardingScreen() {
             {/* Removed Skip button */}
             <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
               <Text style={styles.nextText}>Next</Text>
-              <AntDesign name="arrowright" size={22} color="#fff" style={{ marginLeft: 6 }} />
+              <AntDesign
+                name="arrowright"
+                size={22}
+                color="#fff"
+                style={{ marginLeft: 6 }}
+              />
             </TouchableOpacity>
           </View>
         ) : (
           <Pressable
             style={({ pressed }) => [
               styles.getStartedModern,
-              pressed && { transform: [{ scale: 0.97 }] }
+              pressed && { transform: [{ scale: 0.97 }] },
             ]}
-            onPress={() => router.replace('/auth/auth')}
+            onPress={() => router.replace("/auth/auth")}
             onPressIn={() => setIsPressed(true)}
             onPressOut={() => setIsPressed(false)}
           >
             <LinearGradient
-              colors={[ACCENT, '#7683F7']}
+              colors={[ACCENT, "#7683F7"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.getStartedGradient}
             >
               <Text style={styles.getStartedModernText}>Get Started</Text>
-              <AntDesign name="arrowright" size={24} color="#fff" style={{ marginLeft: 10 }} />
+              <AntDesign
+                name="arrowright"
+                size={24}
+                color="#fff"
+                style={{ marginLeft: 10 }}
+              />
             </LinearGradient>
           </Pressable>
         )}
@@ -150,11 +189,11 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    alignItems: "center",
+    justifyContent: "flex-start",
   },
   logoWrap: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 60,
     marginBottom: 10,
   },
@@ -162,7 +201,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 32,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderWidth: 2,
     borderColor: ACCENT,
     shadowColor: ACCENT,
@@ -173,49 +212,49 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     width,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 10,
   },
   card: {
     width: width * 0.88,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 24,
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 36,
     paddingHorizontal: 18,
-    shadowColor: '#2E45A3',
+    shadowColor: "#2E45A3",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 6,
   },
   image: {
-    width: '90%',
+    width: "90%",
     height: 220,
     marginBottom: 24,
     borderRadius: 18,
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: 12,
     color: ACCENT,
     letterSpacing: 0.2,
   },
   desc: {
     fontSize: 18,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 10,
-    color: '#444',
+    color: "#444",
     marginBottom: 4,
     lineHeight: 26,
   },
   dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 18,
     marginBottom: 30,
     height: 24,
@@ -226,29 +265,29 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   footer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 60,
-    width: '100%',
+    width: "100%",
   },
   buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     width: width * 0.8,
   },
   skipBtn: {
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   skip: {
     fontSize: 18,
-    color: '#888',
-    fontWeight: '500',
+    color: "#888",
+    fontWeight: "500",
   },
   nextBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: ACCENT,
     paddingVertical: 8,
     paddingHorizontal: 18,
@@ -260,9 +299,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   nextText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   getStarted: {
     backgroundColor: ACCENT,
@@ -276,14 +315,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   getStartedText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.5,
   },
   getStartedModern: {
     borderRadius: 24,
-    overflow: 'hidden',
+    overflow: "hidden",
     shadowColor: ACCENT,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
@@ -292,17 +331,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   getStartedGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 18,
     paddingHorizontal: 48,
     borderRadius: 24,
   },
   getStartedModernText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.5,
   },
-}); 
+});

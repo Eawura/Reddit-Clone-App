@@ -120,6 +120,28 @@ const webStorage = {
     const token = await this.getItem(TOKEN_KEY);
     return !!token;
   },
+
+  async getOnboardingStatus() {
+    const value = await this.getItem("onboarding_status");
+    return value === "true"; // or customize this if you use a different format
+  },
+
+  async setOnboardingStatus(status) {
+    await this.setItem("onboarding_status", status ? "true" : "false");
+  },
+
+  async getAuthStatus() {
+    const value = await this.getItem("auth_status");
+    return value === "true"; // or however you store it
+  },
+
+  async setAuthenticated(status) {
+    await this.setItem("@authenticated", status ? "true" : "false");
+  },
+
+  async setAuthStatus(status) {
+    await this.setItem("auth_status", status ? "true" : "false");
+  },
 };
 
 export default webStorage;
