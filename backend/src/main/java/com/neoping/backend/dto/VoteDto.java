@@ -13,4 +13,6 @@ public class VoteDto {
     private Long postId;
     private VoteType voteType;
     private Long userId;
+    private Long targetId; // ID of post or comment
+    private String targetType; // "POST" or "COMMENT"
 }

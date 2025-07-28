@@ -222,5 +222,36 @@ export const updateProfile = async (profileData) => {
   return res.data;
 };
 
+// Get comments for a post
+export const getComments = async (postId) => {
+  const res = await api.get(`/comments/${postId}`);
+  return res.data;
+};
+
+// Add a new comment to a post
+export const addComment = async (postId, text, replyToId = null) => {
+  const res = await api.post(`/comments`, {
+    postId,
+    text,
+    replyToId,
+  });
+  return res.data;
+};
+
+// Like a comment
+export const likeComment = async (commentId) => {
+  const res = await api.post(`/comments/${commentId}/like`);
+  return res.data;
+};
+
+export const voteComment = async (commentId, voteType = "UPVOTE") => {
+  const res = await api.post("/votes", {
+    targetId: commentId,
+    targetType: "COMMENT",
+    voteType,
+  });
+  return res.data;
+};
+
 // Export api instance if you need to set headers in AuthContext
 export { api };
