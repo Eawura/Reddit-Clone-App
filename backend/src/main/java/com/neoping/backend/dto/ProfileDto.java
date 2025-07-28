@@ -12,10 +12,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ProfileDto {
-    private String username;
-    private String email;
-    private String avatar; // URL or filename for profile picture
+    private Long id;
+    private String username; // For display only, not for editing
+    private String email; // For display only, not for editing
+    private String avatar; // Profile picture
     private String bio; // Short user bio
-    private Instant created; // Account creation date
-    private String password;
+    private Instant created; // Profile creation date
+    private String displayName; // Profile/display username (editable)
 }

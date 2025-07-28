@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -16,6 +16,12 @@ import {
   View,
 } from "react-native";
 import { useTheme } from "../../components/ThemeContext";
+import {
+  createCommunity,
+  getCommunities,
+  joinCommunity,
+  leaveCommunity,
+} from "../../utils/api";
 
 // Image mapping for community avatars
 const imageMap = {
@@ -31,100 +37,6 @@ const imageMap = {
   "Commenter9.jpg": require("../../assets/images/Commenter9.jpg"),
   "Commenter10.jpg": require("../../assets/images/Commenter10.jpg"),
 };
-
-// Enhanced mock data for communities
-const MOCK_COMMUNITIES = [
-  {
-    id: "1",
-    name: "programming",
-    displayName: "Programming",
-    members: "2.1m",
-    description:
-      "A community for programmers to share knowledge, ask questions, and discuss all things related to software development.",
-    avatar: "Commenter1.jpg",
-    isJoined: false,
-    category: "Technology",
-    created: "2010-01-15",
-    rules: [
-      "Be respectful and constructive",
-      "No spam or self-promotion",
-      "Use appropriate tags for posts",
-      "Follow community guidelines",
-    ],
-  },
-  {
-    id: "2",
-    name: "gaming",
-    displayName: "Gaming",
-    members: "3.5m",
-    description:
-      "All things gaming - from AAA titles to indie gems. Share your experiences, discuss strategies, and discover new games.",
-    avatar: "Commenter2.jpg",
-    isJoined: true,
-    category: "Entertainment",
-    created: "2009-03-22",
-    rules: [
-      "No spoilers without proper tags",
-      "Respect different gaming preferences",
-      "No piracy discussions",
-      "Keep discussions civil",
-    ],
-  },
-  {
-    id: "3",
-    name: "technology",
-    displayName: "Technology",
-    members: "1.8m",
-    description:
-      "Tech news and discussions about the latest innovations, gadgets, and technological advancements.",
-    avatar: "Commenter3.jpg",
-    isJoined: false,
-    category: "Technology",
-    created: "2011-07-10",
-    rules: [
-      "Share credible sources",
-      "No conspiracy theories",
-      "Respect intellectual property",
-      "Stay on topic",
-    ],
-  },
-  {
-    id: "4",
-    name: "science",
-    displayName: "Science",
-    members: "1.2m",
-    description:
-      "Scientific discussions, research findings, and exploration of the natural world through evidence-based approaches.",
-    avatar: "Commenter4.jpg",
-    isJoined: true,
-    category: "Education",
-    created: "2012-11-05",
-    rules: [
-      "Cite scientific sources",
-      "No pseudoscience",
-      "Respect peer-reviewed research",
-      "Ask questions respectfully",
-    ],
-  },
-  {
-    id: "5",
-    name: "movies",
-    displayName: "Movies",
-    members: "2.5m",
-    description:
-      "Movie discussions, reviews, recommendations, and everything related to cinema and filmmaking.",
-    avatar: "Commenter5.jpg",
-    isJoined: false,
-    category: "Entertainment",
-    created: "2010-09-18",
-    rules: [
-      "Use spoiler tags appropriately",
-      "Respect different opinions",
-      "No illegal streaming links",
-      "Be constructive in criticism",
-    ],
-  },
-];
 
 // Community categories
 const COMMUNITY_CATEGORIES = [
@@ -159,51 +71,35 @@ const CreateCommunityModal = ({
       Alert.alert("Error", "Please fill in all required fields");
       return;
     }
-
     if (communityName.length < 3) {
       Alert.alert("Error", "Community name must be at least 3 characters long");
       return;
     }
-
     if (communityName.includes(" ")) {
       Alert.alert("Error", "Community name cannot contain spaces");
       return;
     }
-
     setIsLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      const newCommunity = {
-        id: Date.now().toString(),
+    try {
+      const newCommunity = await createCommunity({
         name: communityName.toLowerCase(),
-        displayName: displayName,
-        members: "1",
-        description:
-          description || "A new community for discussions and sharing.",
-        avatar: "Penguin.jpg",
-        isJoined: true,
-        category: category,
-        created: new Date().toISOString().split("T")[0],
-        rules: [
-          "Be respectful to all members",
-          "Follow community guidelines",
-          "No spam or harassment",
-          "Stay on topic",
-        ],
-      };
-
+        displayName,
+        description,
+        category,
+        isPublic,
+      });
       onCommunityCreated(newCommunity);
       setIsLoading(false);
       onClose();
-
-      // Reset form
       setCommunityName("");
       setDisplayName("");
       setDescription("");
       setCategory("Technology");
       setIsPublic(true);
-    }, 1500);
+    } catch (err) {
+      setIsLoading(false);
+      Alert.alert("Error", "Could not create community.");
+    }
   };
 
   return (
@@ -253,7 +149,6 @@ const CreateCommunityModal = ({
             </Text>
           </TouchableOpacity>
         </View>
-
         <ScrollView
           style={styles.modalContent}
           showsVerticalScrollIndicator={false}
@@ -294,7 +189,6 @@ const CreateCommunityModal = ({
               Community names cannot be changed later
             </Text>
           </View>
-
           {/* Display Name */}
           <View style={styles.inputGroup}>
             <Text style={[styles.inputLabel, { color: themeColors.text }]}>
@@ -312,7 +206,6 @@ const CreateCommunityModal = ({
               maxLength={100}
             />
           </View>
-
           {/* Description */}
           <View style={styles.inputGroup}>
             <Text style={[styles.inputLabel, { color: themeColors.text }]}>
@@ -337,7 +230,6 @@ const CreateCommunityModal = ({
               {description.length}/500 characters
             </Text>
           </View>
-
           {/* Category */}
           <View style={styles.inputGroup}>
             <Text style={[styles.inputLabel, { color: themeColors.text }]}>
@@ -375,7 +267,6 @@ const CreateCommunityModal = ({
               ))}
             </ScrollView>
           </View>
-
           {/* Privacy Settings */}
           <View style={styles.inputGroup}>
             <Text style={[styles.inputLabel, { color: themeColors.text }]}>
@@ -426,7 +317,6 @@ const CreateCommunityModal = ({
                   </Text>
                 </View>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.privacyOption,
@@ -488,7 +378,6 @@ const CommunityDetailModal = ({
   themeColors,
 }) => {
   if (!community) return null;
-
   return (
     <Modal
       visible={visible}
@@ -518,7 +407,6 @@ const CommunityDetailModal = ({
           </Text>
           <View style={{ width: 60 }} />
         </View>
-
         <ScrollView
           style={styles.modalContent}
           showsVerticalScrollIndicator={false}
@@ -556,7 +444,6 @@ const CommunityDetailModal = ({
               </Text>
             </View>
           </View>
-
           {/* Join/Leave Button */}
           <TouchableOpacity
             style={[
@@ -582,7 +469,6 @@ const CommunityDetailModal = ({
               {community.isJoined ? "Joined" : "Join"}
             </Text>
           </TouchableOpacity>
-
           {/* Description */}
           <View style={styles.detailSection}>
             <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
@@ -597,29 +483,30 @@ const CommunityDetailModal = ({
               {community.description}
             </Text>
           </View>
-
           {/* Rules */}
           <View style={styles.detailSection}>
             <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
               Community Rules
             </Text>
-            {community.rules.map((rule, index) => (
-              <View key={index} style={styles.ruleItem}>
-                <Text
-                  style={[styles.ruleNumber, { color: themeColors.accent }]}
-                >
-                  {index + 1}.
-                </Text>
-                <Text
-                  style={[
-                    styles.ruleText,
-                    { color: themeColors.textSecondary },
-                  ]}
-                >
-                  {rule}
-                </Text>
-              </View>
-            ))}
+            {(Array.isArray(community.rules) ? community.rules : []).map(
+              (rule, index) => (
+                <View key={index} style={styles.ruleItem}>
+                  <Text
+                    style={[styles.ruleNumber, { color: themeColors.accent }]}
+                  >
+                    {index + 1}.
+                  </Text>
+                  <Text
+                    style={[
+                      styles.ruleText,
+                      { color: themeColors.textSecondary },
+                    ]}
+                  >
+                    {rule}
+                  </Text>
+                </View>
+              )
+            )}
           </View>
         </ScrollView>
       </View>
@@ -706,10 +593,8 @@ const CommunityItem = ({ community, onPress, onJoinLeave, themeColors }) => {
 
 const Communities = ({ onJoinCommunity }) => {
   const router = useRouter();
-  const [communities, setCommunities] = useState(MOCK_COMMUNITIES);
+  const [communities, setCommunities] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredCommunities, setFilteredCommunities] =
-    useState(MOCK_COMMUNITIES);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -718,11 +603,22 @@ const Communities = ({ onJoinCommunity }) => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const { themeColors } = useTheme();
 
+  // Fetch communities from API on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getCommunities();
+        setCommunities(data);
+      } catch (err) {
+        Alert.alert("Error", "Could not fetch communities.");
+      }
+    };
+    fetchData();
+  }, []);
+
   // Filter communities by search text and category
   const getFilteredCommunities = () => {
     let filtered = communities;
-
-    // Filter by category
     if (selectedCategory !== "All") {
       filtered = filtered.filter(
         (community) => community.category === selectedCategory
@@ -741,7 +637,6 @@ const Communities = ({ onJoinCommunity }) => {
             community.description.toLowerCase().includes(q))
       );
     }
-
     return filtered;
   };
 
@@ -752,48 +647,60 @@ const Communities = ({ onJoinCommunity }) => {
     setSearchOpen(false);
     setSearchText("");
   };
-
   const handleSearch = (text) => {
     setSearchQuery(text);
     setSearchText(text);
   };
-
   const handleCommunityPress = (community) => {
     setSelectedCommunity(community);
     setShowDetailModal(true);
   };
 
-  const handleJoinLeave = (communityId) => {
+  // Join/Leave Community
+  const handleJoinLeave = async (communityId) => {
     setCommunities((prev) =>
       prev.map((community) => {
         if (community.id === communityId) {
           const isJoining = !community.isJoined;
-          if (isJoining && onJoinCommunity) {
-            onJoinCommunity(community);
-          }
           return { ...community, isJoined: isJoining };
         }
         return community;
       })
     );
+    try {
+      const community = communities.find((c) => c.id === communityId);
+      if (!community.isJoined) {
+        await joinCommunity(communityId);
+      } else {
+        await leaveCommunity(communityId);
+      }
+    } catch (err) {
+      // Optionally revert optimistic update or show error
+    }
   };
 
-  const handleCreateCommunity = (newCommunity) => {
-    setCommunities((prev) => [newCommunity, ...prev]);
-    Alert.alert(
-      "Success!",
-      `Community n/${newCommunity.name} has been created successfully!`,
-      [
-        {
-          text: "OK",
-          onPress: () =>
-            router.push({
-              pathname: "/(tabs)/create",
-              params: { community: newCommunity.name },
-            }),
-        },
-      ]
-    );
+  // Create Community
+  const handleCreateCommunity = async (newCommunity) => {
+    try {
+      const created = await createCommunity(newCommunity);
+      setCommunities((prev) => [created, ...prev]);
+      Alert.alert(
+        "Success!",
+        `Community n/${created.name} has been created successfully!`,
+        [
+          {
+            text: "OK",
+            onPress: () =>
+              router.push({
+                pathname: "/(tabs)/create",
+                params: { community: created.name },
+              }),
+          },
+        ]
+      );
+    } catch (err) {
+      Alert.alert("Error", "Could not create community.");
+    }
   };
 
   const renderCommunityItem = ({ item }) => (
@@ -1022,7 +929,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 2, // for Android
+    elevation: 2,
     minWidth: 80,
     minHeight: 36,
   },
@@ -1278,5 +1185,3 @@ const styles = StyleSheet.create({
 });
 
 export default Communities;
-
-export { MOCK_COMMUNITIES };

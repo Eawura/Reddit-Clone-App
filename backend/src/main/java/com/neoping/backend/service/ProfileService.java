@@ -18,28 +18,47 @@ public class ProfileService {
 
     public ProfileDto getUserProfile(String username) {
         Profile profile = profileRepository.findByUserUsername(username)
-                .orElseThrow(() -> new RuntimeException("Profile not found"));
-        return toDto(profile);
+                .orElseGet(() -> {
+                    Profile newProfile = new Profile();
+                    newProfile.setUser(userRepository.findByUsername(username)
+                            .orElseThrow(() -> new RuntimeException("User not found")));
+                    return profileRepository.save(newProfile);
+                });
+
+        ProfileDto dto = new ProfileDto();
+        dto.setId(profile.getId());
+        dto.setUsername(profile.getUser().getUsername());
+        dto.setEmail(profile.getUser().getEmail());
+        dto.setBio(profile.getBio());
+        dto.setAvatar(profile.getAvatar());
+        // ...other fields
+        return dto;
     }
 
     public ProfileDto updateUserProfile(String username, ProfileDto profileDto) {
         Profile profile = profileRepository.findByUserUsername(username)
-                .orElseThrow(() -> new RuntimeException("Profile not found"));
+                .orElseGet(() -> {
+                    Profile newProfile = new Profile();
+                    newProfile.setUser(userRepository.findByUsername(username)
+                            .orElseThrow(() -> new RuntimeException("User not found")));
+                    return profileRepository.save(newProfile);
+                });
 
-        profile.setAvatar(profileDto.getAvatar());
+        // Update bio and avatar
         profile.setBio(profileDto.getBio());
+        profile.setAvatar(profileDto.getAvatar());
 
-        // Update email
-        if (profileDto.getEmail() != null && !profileDto.getEmail().isEmpty()) {
-            profile.getUser().setEmail(profileDto.getEmail());
-        }
-
-        // Update password (make sure to hash it in a real app!)
-        if (profileDto.getPassword() != null && !profileDto.getPassword().isEmpty()) {
-            profile.getUser().setPassword(profileDto.getPassword());
+        // Only update displayName (profile username), not login username
+        if (profileDto.getDisplayName() != null) {
+            String displayName = profileDto.getDisplayName().trim();
+            if (!displayName.startsWith("u/")) {
+                displayName = "u/" + displayName;
+            }
+            profile.setDisplayName(displayName);
         }
 
         profileRepository.save(profile);
+
         return toDto(profile);
     }
 
@@ -57,6 +76,19 @@ public class ProfileService {
 
         profile.setUser(user);
         profile.setCreated(java.time.Instant.now());
+
+        // Ensure displayName always starts with "u/"
+        String displayName = profileDto.getDisplayName();
+        if (displayName == null || displayName.isBlank()) {
+            displayName = "u/" + user.getUsername();
+        } else {
+            displayName = displayName.trim();
+            if (!displayName.startsWith("u/")) {
+                displayName = "u/" + displayName;
+            }
+        }
+        profile.setDisplayName(displayName);
+
         profileRepository.save(profile);
         return toDto(profile);
     }
@@ -68,6 +100,7 @@ public class ProfileService {
                 .avatar(profile.getAvatar())
                 .bio(profile.getBio())
                 .created(profile.getCreated())
+                .displayName(profile.getDisplayName())
                 .build();
     }
 }

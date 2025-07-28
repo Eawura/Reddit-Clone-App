@@ -36,4 +36,7 @@ public class Profile {
     private String bio; // Short user bio
 
     private Instant created; // Profile creation date (optional)
+
+    @Column(nullable = true, unique = false, length = 50)
+    private String displayName; // or profileUsername
 }

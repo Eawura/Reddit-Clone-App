@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Dimensions,
   Image,
@@ -82,9 +83,6 @@ export default function ProfileModal({
   const [dataSaver, setDataSaver] = useState(false);
   const { theme, toggleTheme, themeColors } = useTheme();
   const [showProfileDetails, setShowProfileDetails] = useState(false);
-  const [editDisplayName, setEditDisplayName] = useState(
-    profile.displayName || ""
-  );
   const [editUsername, setEditUsername] = useState(profile.username);
   const [editBio, setEditBio] = useState(profile.bio);
   const [avatarUri, setAvatarUri] = useState(profile.avatar);
@@ -111,15 +109,6 @@ export default function ProfileModal({
   const [isFollowing, setIsFollowing] = useState(false);
 
   const userPosts = posts.filter((p) => p.user === profile.username);
-
-  // Update local state when profile details are shown
-  useEffect(() => {
-    if (showProfileDetails) {
-      setEditBio(profile.bio);
-      setAvatarUri(profile.avatar);
-      setEditUsername(profile.username);
-    }
-  }, [showProfileDetails, profile]);
 
   // FAQ data
   const faqData = [
@@ -239,56 +228,20 @@ export default function ProfileModal({
   const { saveProfile } = useProfile();
 
   const handleSaveProfile = async () => {
+    const newProfileData = {
+      username: editUsername,
+      bio: editBio,
+      avatar: avatarUri,
+    };
     try {
-      console.log("Starting profile update...");
-      const updatedProfile = {
-        ...profile,
-        displayName: editDisplayName.trim(), // Ensure we trim any whitespace
-        bio: editBio,
-        avatar: avatarUri || profile.avatar,
-      };
-      console.log("Updated profile data:", updatedProfile);
-
-      // Save to backend and update context
-      console.log("Calling saveProfile...");
-      const savedProfile = await saveProfile(updatedProfile);
-      console.log("Profile saved successfully:", savedProfile);
-
-      if (!savedProfile) {
-        console.error("No profile data returned from saveProfile");
-        return;
-      }
-
-      // Update all local states with the response from the server
-      console.log("Updating local state...");
-      setProfile((prevProfile) => ({
-        ...prevProfile,
-        ...savedProfile,
-        displayName: savedProfile.displayName || prevProfile.displayName,
-        bio: savedProfile.bio || "",
-        avatar: savedProfile.avatar || "",
-      }));
-
-      // Also update the edit states to match
-      setEditDisplayName(savedProfile.displayName || editDisplayName);
-      setEditBio(savedProfile.bio || "");
-      setAvatarUri(savedProfile.avatar || "");
-
-      // Close the profile details modal
-      console.log("Closing profile details modal...");
+      await saveProfile(newProfileData); // This calls the backend
       setShowProfileDetails(false);
-
-      console.log("Profile update completed successfully");
-    } catch (error) {
-      console.error("Failed to save profile:", {
-        message: error.message,
-        error: error,
-        response: error.response?.data,
-        stack: error.stack,
-      });
-      // You might want to show an error message to the user here
+      Alert.alert("Success", "Profile updated successfully!");
+    } catch (err) {
+      Alert.alert("Error", "Failed to update profile.");
     }
   };
+
   // Load settings on component mount
   useEffect(() => {
     loadSettings();
@@ -319,14 +272,6 @@ export default function ProfileModal({
     allowPersonalizedAds,
     allowDataCollection,
   ]);
-
-  useEffect(() => {
-    if (showProfileDetails) {
-      setEditDisplayName(profile.displayName || "");
-      setEditBio(profile.bio || "");
-      setAvatarUri(profile.avatar || "");
-    }
-  }, [showProfileDetails, profile]);
 
   // Save settings to AsyncStorage
   const saveSettings = async () => {
@@ -455,7 +400,7 @@ export default function ProfileModal({
             </View>
           </TouchableOpacity>
           <Text style={[styles.username, { color: themeColors.text }]}>
-            {profile.displayName}
+            {profile.username}
           </Text>
           {/* Online Status */}
           <TouchableOpacity
@@ -1186,9 +1131,9 @@ export default function ProfileModal({
                       backgroundColor: themeColors.card,
                     },
                   ]}
-                  value={editDisplayName}
-                  onChangeText={setEditDisplayName}
-                  placeholder="u/DisplayName"
+                  value={editUsername}
+                  onChangeText={setEditUsername}
+                  placeholder="Username"
                   placeholderTextColor={themeColors.textSecondary}
                   autoCapitalize="none"
                   autoCorrect={false}

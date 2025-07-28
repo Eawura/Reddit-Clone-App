@@ -38,6 +38,19 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// <-- PUT THE INTERCEPTOR CODE HERE
+api.interceptors.request.use(
+  async (config) => {
+    const token = await storage.getItem("auth_token");
+    console.log("Attaching token:", token); // <--- Add this line
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 api.getBaseURL = () => api.defaults.baseURL;
 // Export the API URL for use in other parts of the app
 
@@ -170,6 +183,43 @@ export const authAPI = {
       return { success: false, error: error.message };
     }
   },
+};
+
+export const getCommunities = async () => {
+  const res = await api.get("/communities");
+  return res.data;
+};
+
+export const createCommunity = async (data) => {
+  const res = await api.post("/communities", data);
+  return res.data;
+};
+
+export const joinCommunity = async (id) => {
+  const res = await api.post(`/communities/${id}/join`);
+  return res.data;
+};
+
+export const leaveCommunity = async (id) => {
+  const res = await api.post(`/communities/${id}/leave`);
+  return res.data;
+};
+
+export const getCommunityMessages = async () => {
+  const res = await api.get("/messages"); // Adjust endpoint if needed
+  return res.data;
+};
+
+// Get current user's profile
+export const getProfile = async () => {
+  const res = await api.get("/profile");
+  return res.data;
+};
+
+// Update current user's profile
+export const updateProfile = async (profileData) => {
+  const res = await api.put("/profile", profileData);
+  return res.data;
 };
 
 // Export api instance if you need to set headers in AuthContext
