@@ -23,7 +23,7 @@ const getApiUrl = () => {
   }
 
   // For production (update with your production URL)
-  return "https://your-production-api.com/api";
+  return "https://reddit-clone-app-production.up.railway.app/api";
 };
 
 const API_URL = getApiUrl();

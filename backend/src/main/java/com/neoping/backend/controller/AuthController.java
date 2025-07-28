@@ -21,11 +21,11 @@ import com.neoping.backend.service.AuthService;
 import com.neoping.backend.service.RefreshTokenService;
 import com.neoping.backend.service.UserService;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/auth")
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
